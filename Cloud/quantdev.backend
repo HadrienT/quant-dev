@@ -1,0 +1,3 @@
+bucket = "sa-qdev-tf-dev"
+prefix = "static.tfstate.d"
+impersonate_service_account = "sa-qdev-tf-dev@quant-dev-442615.iam.gserviceaccount.com"
