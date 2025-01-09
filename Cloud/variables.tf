@@ -6,6 +6,7 @@ variable "project_id" {
 variable "region" {
   description = "The region where resources will be created"
   type        = string
+  default     = "europe-west1"
 }
 
 variable "zone" {
@@ -16,4 +17,10 @@ variable "zone" {
 variable "tf_service_account" {
   description = "The email of the service account to impersonate"
   type        = string
+}
+
+variable "bucket_data_collector_code" {
+  description = "Name of the bucket to store the data collector source code"
+  type        = string
+  default = "bucket_data_collector_code"
 }

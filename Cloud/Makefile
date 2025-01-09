@@ -10,7 +10,7 @@ plan:
 # Optional: Add a target to apply the plan
 .PHONY: apply
 apply:
-	terraform apply $(TF_PLAN)
+	terraform apply $(TF_PLAN) 
 
 # Optional: Add a target to destroy resources
 .PHONY: destroy
