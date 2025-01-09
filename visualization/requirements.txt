@@ -1,0 +1,9 @@
+yfinance
+fredapi
+numpy
+QuantLib
+matplotlib
+pandas
+scipy
+streamlit
+statsmodels
