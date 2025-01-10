@@ -1,3 +1,10 @@
+# Ajoutez cette ressource pour créer une adresse IP statique
+resource "google_compute_address" "static_ip" {
+  name   = "ht-vm-e2-medium-static-ip"
+  region = "europe-west3"
+}
+
+# Mettez à jour votre instance pour utiliser cette IP statique
 resource "google_compute_instance" "instance-20250109-093047" {
   boot_disk {
     auto_delete = true
@@ -5,7 +12,7 @@ resource "google_compute_instance" "instance-20250109-093047" {
 
     initialize_params {
       image = "projects/debian-cloud/global/images/debian-12-bookworm-v20241210"
-      size  = 10
+      size  = 30
       type  = "pd-balanced"
     }
 
@@ -24,18 +31,18 @@ resource "google_compute_instance" "instance-20250109-093047" {
   name         = "ht-vm-e2-medium"
 
   network_interface {
+    subnetwork = "projects/quant-dev-442615/regions/europe-west3/subnetworks/default"
+
     access_config {
       network_tier = "PREMIUM"
+      nat_ip       = google_compute_address.static_ip.address
     }
-    # Supprimez queue_count et stack_type
-    subnetwork  = "projects/quant-dev-442615/regions/europe-west3/subnetworks/default"
   }
 
   scheduling {
     automatic_restart   = true
     on_host_maintenance = "MIGRATE"
     preemptible         = false
-    # Supprimez provisioning_model
   }
 
   service_account {
