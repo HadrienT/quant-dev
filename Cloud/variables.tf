@@ -26,6 +26,13 @@ variable "bucket_data_collector_code" {
 }
 
 
+### VM
+variable "ssh_key" {
+  description = "SSH public key for the instance"
+  type        = string
+}
+
+
 
 ### Webapp.tf
 variable "repository_name" {

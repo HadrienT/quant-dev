@@ -1,11 +1,13 @@
-# Ajoutez cette ressource pour créer une adresse IP statique
 resource "google_compute_address" "static_ip" {
   name   = "ht-vm-e2-medium-static-ip"
   region = "europe-west3"
 }
 
-# Mettez à jour votre instance pour utiliser cette IP statique
 resource "google_compute_instance" "instance-20250109-093047" {
+  name         = "ht-vm-e2-medium"
+  machine_type = "e2-medium"
+  zone         = "europe-west3-a"
+
   boot_disk {
     auto_delete = true
     device_name = "ht-vm-e2-medium-dsk"
@@ -26,9 +28,6 @@ resource "google_compute_instance" "instance-20250109-093047" {
   labels = {
     goog-ec-src = "vm_add-tf"
   }
-
-  machine_type = "e2-medium"
-  name         = "ht-vm-e2-medium"
 
   network_interface {
     subnetwork = "projects/quant-dev-442615/regions/europe-west3/subnetworks/default"
@@ -63,5 +62,7 @@ resource "google_compute_instance" "instance-20250109-093047" {
     enable_vtpm                 = true
   }
 
-  zone = "europe-west3-a"
+  metadata = {
+    ssh-keys = "ht-vm-e2-medium:${var.ssh_key}"
+  }
 }
