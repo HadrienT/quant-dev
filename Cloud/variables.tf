@@ -24,3 +24,27 @@ variable "bucket_data_collector_code" {
   type        = string
   default = "bucket_data_collector_code"
 }
+
+
+
+### Webapp.tf
+variable "repository_name" {
+  description = "Artifact Registry repository name"
+  type        = string
+}
+
+variable "service_name" {
+  description = "Cloud Run service name"
+  type        = string
+}
+
+
+variable "github_owner" {
+  description = "Propriétaire du dépôt GitHub (utilisateur ou organisation)"
+  type        = string
+}
+
+variable "github_repo_name" {
+  description = "Nom du dépôt GitHub"
+  type        = string
+}
