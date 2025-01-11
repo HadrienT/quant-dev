@@ -1,8 +1,8 @@
 resource "google_artifact_registry_repository" "repository" {
-  repository_id         = var.repository_name
-  location     = var.region
-  format       = "DOCKER"
-  description  = "Artifact Registry for Cloud Run"
+  repository_id = var.repository_name
+  location      = var.region
+  format        = "DOCKER"
+  description   = "Artifact Registry for Cloud Run"
 }
 
 resource "google_cloudbuild_trigger" "build_trigger" {
@@ -17,10 +17,10 @@ resource "google_cloudbuild_trigger" "build_trigger" {
     }
   }
 
-included_files = [
+  included_files = [
     "visualization/**"
   ]
-  filename = "visualization/cloudbuild.yaml"
+  filename = "Cloud/cloudbuild.yaml"
 
   substitutions = {
     _SERVICE_NAME   = var.service_name
@@ -28,6 +28,7 @@ included_files = [
     _REPOSITORY     = var.repository_name
     _PROJECT_ID     = var.project_id
   }
+
 }
 
 resource "google_cloud_run_service" "service" {
@@ -47,7 +48,6 @@ resource "google_cloud_run_service" "service" {
       }
     }
   }
-
 }
 
 resource "google_cloud_run_service_iam_policy" "no_auth" {
