@@ -55,3 +55,8 @@ variable "github_repo_name" {
   description = "Nom du dépôt GitHub"
   type        = string
 }
+
+variable "builder_service_account" {
+  description = "The email of the service account to impersonate"
+  type        = string
+}

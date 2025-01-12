@@ -1,19 +1,28 @@
 steps:
   - name: "gcr.io/cloud-builders/docker"
-    args: ["build", "-t", "${_REPOSITORY}/${_SERVICE_NAME}:latest","-f", "./visualization/Dockerfile", "./visualization"]
+    args: [
+      "build",
+      "-t", "${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_REPOSITORY}/${_SERVICE_NAME}:latest",
+      "-f", "./visualization/Dockerfile",
+      "./visualization"
+    ]
 
   - name: "gcr.io/cloud-builders/docker"
-    args: ["push", "${_REPOSITORY}/${_SERVICE_NAME}:latest"]
+    args: [
+      "push",
+      "${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_REPOSITORY}/${_SERVICE_NAME}:latest"
+    ]
 
   - name: "gcr.io/cloud-builders/gcloud"
     args: [
       "run", "deploy", "${_SERVICE_NAME}",
-      "--image", "${_REPOSITORY}/${_SERVICE_NAME}:latest",
+      "--image", "${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_REPOSITORY}/${_SERVICE_NAME}:latest",
       "--region", "${_REGION}",
       "--allow-unauthenticated"
     ]
+
 images:
-  - "${_REPOSITORY}/${_SERVICE_NAME}:latest"
+  - "${_REGION}-docker.pkg.dev/${_PROJECT_ID}/${_REPOSITORY}/${_SERVICE_NAME}:latest"
 
 options:
   logging: CLOUD_LOGGING_ONLY
