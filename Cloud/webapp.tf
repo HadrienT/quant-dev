@@ -5,29 +5,29 @@ resource "google_artifact_registry_repository" "repository" {
   description   = "Artifact Registry for Cloud Run"
 }
 
-resource "google_cloudbuild_trigger" "build_trigger" {
-  name            = "cloud-run-build-trigger"
-  filename        = "cloudbuild.yaml"
-  service_account = var.builder_service_account
-  github {
-    owner = var.github_owner
-    name  = var.github_repo_name
+# resource "google_cloudbuild_trigger" "build_trigger" {
+#   name            = "cloud-run-build-trigger"
+#   filename        = "cloudbuild.yaml"
+#   service_account = var.builder_service_account
+#   github {
+#     owner = var.github_owner
+#     name  = var.github_repo_name
 
-    push {
-      branch = "^main$"
-    }
-  }
+#     push {
+#       branch = "^main$"
+#     }
+#   }
 
-  included_files = [
-    "visualization/**",
-  ]
-  substitutions = {
-    _SERVICE_NAME = var.service_name
-    _REGION       = var.region
-    _REPOSITORY   = var.repository_name
-    _PROJECT_ID   = var.project_id
-  }
-}
+#   included_files = [
+#     "visualization/**",
+#   ]
+#   substitutions = {
+#     _SERVICE_NAME = var.service_name
+#     _REGION       = var.region
+#     _REPOSITORY   = var.repository_name
+#     _PROJECT_ID   = var.project_id
+#   }
+# }
 
 resource "google_cloud_run_v2_service" "service" {
   name                = var.service_name
