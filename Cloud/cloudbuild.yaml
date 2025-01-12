@@ -1,6 +1,6 @@
 steps:
   - name: "gcr.io/cloud-builders/docker"
-    args: ["build", "-t", "${_REPOSITORY}/${_SERVICE_NAME}:latest", "./visualization"]
+    args: ["build", "-t", "${_REPOSITORY}/${_SERVICE_NAME}:latest","-f", "./visualization/Dockerfile", "./visualization"]
 
   - name: "gcr.io/cloud-builders/docker"
     args: ["push", "${_REPOSITORY}/${_SERVICE_NAME}:latest"]
