@@ -45,7 +45,7 @@ resource "google_compute_instance" "instance-20250109-093047" {
   }
 
   service_account {
-    email  = "956975863647-compute@developer.gserviceaccount.com"
+    email = "956975863647-compute@developer.gserviceaccount.com"
     scopes = [
       "https://www.googleapis.com/auth/devstorage.read_only",
       "https://www.googleapis.com/auth/logging.write",

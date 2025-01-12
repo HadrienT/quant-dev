@@ -22,7 +22,7 @@ variable "tf_service_account" {
 variable "bucket_data_collector_code" {
   description = "Name of the bucket to store the data collector source code"
   type        = string
-  default = "bucket_data_collector_code"
+  default     = "bucket_data_collector_code"
 }
 
 

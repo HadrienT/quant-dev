@@ -18,42 +18,51 @@ resource "google_cloudbuild_trigger" "build_trigger" {
   }
 
   included_files = [
-    "visualization/**"
+    "visualization/**",
+    "Cloud/cloudbuild.yaml"
   ]
   filename = "Cloud/cloudbuild.yaml"
 
   substitutions = {
-    _SERVICE_NAME   = var.service_name
-    _REGION         = var.region
-    _REPOSITORY     = var.repository_name
-    _PROJECT_ID     = var.project_id
+    _SERVICE_NAME = var.service_name
+    _REGION       = var.region
+    _REPOSITORY   = var.repository_name
+    _PROJECT_ID   = var.project_id
   }
 
 }
 
-resource "google_cloud_run_service" "service" {
-  name     = var.service_name
-  location = var.region
+resource "google_cloud_run_v2_service" "service" {
+  name                = var.service_name
+  location            = var.region
+  deletion_protection = false
 
   template {
-    spec {
-      containers {
-        image = "${var.region}-docker.pkg.dev/${var.project_id}/${var.repository_name}/${var.service_name}:latest"
-        resources {
-          limits = {
-            memory = "1024Mi"
-            cpu    = "1"
-          }
+    containers {
+      image = "${var.region}-docker.pkg.dev/${var.project_id}/${var.repository_name}/${var.service_name}:latest"
+
+      resources {
+        limits = {
+          memory = "1024Mi"
+          cpu    = "1"
         }
       }
     }
+
+    scaling {
+      min_instance_count = 0
+      max_instance_count = 1
+    }
+
+    timeout = "600s"
   }
 }
 
+
 resource "google_cloud_run_service_iam_policy" "no_auth" {
-  location = google_cloud_run_service.service.location
-  project  = google_cloud_run_service.service.project
-  service  = google_cloud_run_service.service.name
+  location = google_cloud_run_v2_service.service.location
+  project  = google_cloud_run_v2_service.service.project
+  service  = google_cloud_run_v2_service.service.name
 
   policy_data = data.google_iam_policy.no_auth_policy.policy_data
 }

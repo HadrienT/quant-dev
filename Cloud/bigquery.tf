@@ -1,6 +1,6 @@
 resource "google_bigquery_dataset" "dataset" {
-  dataset_id = "financial_data"    # Nom du dataset
-  location   = "EU"               # Localisation du dataset (Europe)
+  dataset_id = "financial_data" # Nom du dataset
+  location   = "EU"             # Localisation du dataset (Europe)
 }
 
 resource "google_bigquery_table" "table" {
