@@ -6,7 +6,8 @@ resource "google_artifact_registry_repository" "repository" {
 }
 
 resource "google_cloudbuild_trigger" "build_trigger" {
-  name = "cloud-run-build-trigger"
+  name     = "cloud-run-build-trigger"
+  filename = "Cloud/cloudbuild.yaml"
 
   github {
     owner = var.github_owner
@@ -21,15 +22,12 @@ resource "google_cloudbuild_trigger" "build_trigger" {
     "visualization/**",
     "Cloud/cloudbuild.yaml"
   ]
-  filename = "Cloud/cloudbuild.yaml"
-
   substitutions = {
     _SERVICE_NAME = var.service_name
     _REGION       = var.region
     _REPOSITORY   = var.repository_name
     _PROJECT_ID   = var.project_id
   }
-
 }
 
 resource "google_cloud_run_v2_service" "service" {

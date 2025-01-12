@@ -5,13 +5,13 @@ steps:
   - name: "gcr.io/cloud-builders/docker"
     args: ["push", "${_REPOSITORY}/${_SERVICE_NAME}:latest"]
 
-  # - name: "gcr.io/cloud-builders/gcloud"
-  #   args: [
-  #     "run", "deploy", "${_SERVICE_NAME}",
-  #     "--image", "${_REPOSITORY}/${_SERVICE_NAME}:latest",
-  #     "--region", "${_REGION}",
-  #     "--allow-unauthenticated"
-  #   ]
+  - name: "gcr.io/cloud-builders/gcloud"
+    args: [
+      "run", "deploy", "${_SERVICE_NAME}",
+      "--image", "${_REPOSITORY}/${_SERVICE_NAME}:latest",
+      "--region", "${_REGION}",
+      "--allow-unauthenticated"
+    ]
 images:
   - "${_REPOSITORY}/${_SERVICE_NAME}:latest"
 
