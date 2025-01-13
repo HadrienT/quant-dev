@@ -5,13 +5,16 @@ from google.cloud import bigquery
 
 
 # Download the list of S&P 500 tickers
-def get_sp500_tickers():
-    """Fetches the list of S&P 500 tickers from Wikipedia."""
-    url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
-    table = pd.read_html(url, header=0)
-    sp500_table = table[0]  # The main table is the first one
-    return sp500_table["Symbol"].tolist()
+# def get_sp500_tickers():
+#     """Fetches the list of S&P 500 tickers from Wikipedia."""
+#     url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
+#     table = pd.read_html(url, header=0)
+#     sp500_table = table[0]  # The main table is the first one
+#     return sp500_table["Symbol"].tolist()
 
+def get_sp500_tickers():
+    df = pd.read_csv("tickers.csv")
+    return df["Symbol"].tolist()
 
 # Download previous day's data
 def download_previous_day_data(tickers):
