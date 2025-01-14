@@ -13,8 +13,9 @@ from google.cloud import bigquery
 #     return sp500_table["Symbol"].tolist()
 
 def get_sp500_tickers():
-    df = pd.read_csv("tickers.csv")
-    return df["Symbol"].tolist()
+    return pd.read_csv("tickers.csv", header=None)[0].tolist()
+
+
 
 # Download previous day's data
 def download_previous_day_data(tickers):
@@ -46,17 +47,16 @@ def download_previous_day_data(tickers):
         return pd.DataFrame()  # Returns an empty DataFrame if no data is available
     # Restructure the data
     data = data.stack(level=0, future_stack=True).reset_index()
-    data.columns = [
+    columns = [
         "Date",
         "Ticker",
         "Open",
         "High",
         "Low",
         "Close",
-        "Adj Close",
         "Volume",
     ]
-    return data
+    return data[columns]
 
 
 # Download data for all tickers
@@ -75,18 +75,16 @@ def download_sp500_data(tickers, start_date="2000-01-01", end_date=None):
     )
 
     data = data.stack(level=0, future_stack=True).reset_index()  # Make tickers a column
-    data.columns = [
+    columns = [
         "Date",
         "Ticker",
         "Open",
         "High",
         "Low",
         "Close",
-        "Adj Close",
         "Volume",
     ]
-
-    return data
+    return data[columns]
 
 
 # Load data into BigQuery
@@ -148,7 +146,10 @@ def fill_table():
 
     # Step 2: Download data
     print("Downloading daily data...")
-    sp500_data = download_sp500_data(sp500_tickers, start_date="2000-01-01")
+    end_date = datetime.today().strftime("%Y-%m-%d")
+    sp500_data = download_sp500_data(
+        sp500_tickers, start_date="2000-01-01", end_date=end_date
+    )
 
     # Step 3: Load into BigQuery
     print("Loading data into BigQuery...")

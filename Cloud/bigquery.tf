@@ -40,11 +40,6 @@ resource "google_bigquery_table" "table" {
       mode = "NULLABLE"
     },
     {
-      name = "Adj Close"
-      type = "FLOAT"
-      mode = "NULLABLE"
-    },
-    {
       name = "Volume"
       type = "INTEGER"
       mode = "NULLABLE"
