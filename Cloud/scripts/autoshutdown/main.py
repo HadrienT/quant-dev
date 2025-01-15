@@ -14,3 +14,8 @@ def shutdown_vm(request):
         return f"VM {instance} in zone {zone} has been stopped successfully."
     except Exception as e:
         return f"Failed to stop VM {instance}: {str(e)}"
+
+
+def main(request):
+    shutdown_vm(request)
+    return "Success", 200
