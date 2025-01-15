@@ -12,7 +12,7 @@ resource "google_storage_bucket_object" "function_code" {
 
 resource "google_cloudfunctions_function" "add_daily_function" {
   name        = "add_daily_sp500_data"
-  runtime     = "python39"
+  runtime     = "python311"
   region      = var.region
   entry_point = "main"
 

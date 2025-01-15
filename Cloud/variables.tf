@@ -32,7 +32,9 @@ variable "ssh_key" {
   type        = string
 }
 
-
+variable "vm_name" {
+  default = "ht-vm-e2-medium"
+}
 
 ### Webapp.tf
 variable "repository_name" {
