@@ -154,16 +154,19 @@ def load_data() -> pd.DataFrame:
 @st.cache_data
 def load_prices(special_filters: list[str] = None) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Load and transform asset price data."""
-    df = load_data()  # Load the data
+    df = load_data()
     prices = df.pivot(index="Date", columns="Ticker", values="Close")
     prices = prices.infer_objects().interpolate(method="linear")
-    prices = prices.drop(
-        columns=["ABNB", "AMTM", "CEG", "GEHC", "GEV", "KVUE", "SOLV", "SW", "VLTO"],
-    )
-    prices.index = pd.to_datetime(prices.index)  # Ensure the index is of datetime type
+    
+    columns_to_drop = ["ABNB", "AMTM", "CEG", "GEHC", "GEV", "KVUE", "SOLV", "SW", "VLTO"]
+    
+    prices = prices.drop(columns=[col for col in columns_to_drop if col in prices.columns], errors="ignore")
+    prices.index = pd.to_datetime(prices.index)
+    
     if special_filters is not None:
         return df, prices[special_filters]
     return df, prices.dropna()
+
 
 
 @st.cache_data
