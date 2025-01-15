@@ -9,3 +9,5 @@ streamlit
 statsmodels
 plotly
 python-dotenv
+google-cloud-bigquery
+db-dtypes

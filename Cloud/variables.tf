@@ -62,3 +62,9 @@ variable "builder_service_account" {
   description = "The email of the service account to impersonate"
   type        = string
 }
+
+variable "fred_api_key" {
+  description = "API Key for FRED"
+  type        = string
+  sensitive   = true
+}

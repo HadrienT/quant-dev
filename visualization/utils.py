@@ -11,6 +11,7 @@ from fredapi import Fred
 import statsmodels.api as sm
 from statsmodels.tsa.stattools import coint, adfuller
 import streamlit as st
+from google.cloud import bigquery
 
 
 load_dotenv()
@@ -125,13 +126,30 @@ def calculate_coint(stock_pair: tuple[str], data: pd.DataFrame) -> dict[str, flo
     return {"score": score, "p_value": p_value}
 
 
+# def load_data() -> pd.DataFrame:
+#     df1 = pd.read_csv("../data/sp500_data.csv")
+#     df2 = pd.read_csv("../data/sp500_stock_index_data.csv")
+#     combined_df = pd.concat([df1, df2]).drop_duplicates(["Date", "Ticker"])
+
+#     return combined_df
+
 def load_data() -> pd.DataFrame:
-    df1 = pd.read_csv("../data/sp500_data.csv")
-    df2 = pd.read_csv("../data/sp500_stock_index_data.csv")
-    combined_df = pd.concat([df1, df2]).drop_duplicates(["Date", "Ticker"])
+    client = bigquery.Client()
 
-    return combined_df
+    PROJECT_ID = "quant-dev-442615"
+    DATASET_ID = "financial_data"
+    
+    query = f"""
+    SELECT * 
+    FROM `{PROJECT_ID}.{DATASET_ID}.sp500_data`
+    WHERE Date > '2020-01-01'
+    """
+    
+    combined_df = client.query(query).to_dataframe()
 
+    combined_df = combined_df.drop_duplicates(subset=["Date", "Ticker"])
+
+    return combined_df.sort_values(by=["Date"])
 
 @st.cache_data
 def load_prices(special_filters: list[str] = None) -> tuple[pd.DataFrame, pd.DataFrame]:

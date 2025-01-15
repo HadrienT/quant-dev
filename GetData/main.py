@@ -130,8 +130,8 @@ def merge_into_main_table(client, temp_table_id, main_table_id):
     USING `{temp_table_id}` AS temp
     ON main.Date = temp.Date AND main.Ticker = temp.Ticker
     WHEN NOT MATCHED THEN
-      INSERT (Date, Ticker, Open, High, Low, Close, `Adj Close`, Volume)  -- `Adj Close` with a space
-      VALUES (temp.Date, temp.Ticker, temp.Open, temp.High, temp.Low, temp.Close, temp.`Adj Close`, temp.Volume)
+      INSERT (Date, Ticker, Open, High, Low, Close, Volume) 
+      VALUES (temp.Date, temp.Ticker, temp.Open, temp.High, temp.Low, temp.Close, temp.Volume)
     """
     job = client.query(query)
     job.result()
