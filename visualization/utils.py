@@ -16,6 +16,8 @@ from google.cloud import bigquery
 
 load_dotenv()
 fred_api_key = os.getenv("FRED_APY_KEY")
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/app/service-account-key.json"
+
 calendar = ql.UnitedStates(ql.UnitedStates.NYSE)
 
 
@@ -158,10 +160,10 @@ def load_prices(special_filters: list[str] = None) -> tuple[pd.DataFrame, pd.Dat
     prices = df.pivot(index="Date", columns="Ticker", values="Close")
     prices = prices.infer_objects().interpolate(method="linear")
     
-    columns_to_drop = ["ABNB", "AMTM", "CEG", "GEHC", "GEV", "KVUE", "SOLV", "SW", "VLTO"]
+    columns_to_drop = ["ABNB", "AMTM", "CEG", "GEHC", "GEV", "KVUE", "SOLV", "SW", "VLTO", "TNX"]
     
     prices = prices.drop(columns=[col for col in columns_to_drop if col in prices.columns], errors="ignore")
-    prices.index = pd.to_datetime(prices.index)
+    prices.index = pd.to_datetime(prices.index).tz_localize("UTC")
     
     if special_filters is not None:
         return df, prices[special_filters]
