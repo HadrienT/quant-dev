@@ -16,7 +16,7 @@ from google.cloud import bigquery
 
 load_dotenv()
 fred_api_key = os.getenv("FRED_APY_KEY")
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/app/service-account-key.json"
+# os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/app/service-account-key.json"
 
 calendar = ql.UnitedStates(ql.UnitedStates.NYSE)
 
