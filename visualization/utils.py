@@ -310,18 +310,36 @@ def track_portfolio_value(
     sorted_weights: list,
     initial_capital: int,
 ) -> pd.Series:
-    print(f"{purchase_date=}")
-    print(f"{sorted_assets=}")
-    print(f"{sorted_weights=}")
-    print(f"{initial_capital=}")
     purchase_date = pd.Timestamp(purchase_date.to_date()).tz_localize("UTC")
     filtered_prices = prices[sorted_assets].loc[purchase_date:]
     initial_allocations = sorted_weights * initial_capital
     initial_prices = filtered_prices[sorted_assets].loc[purchase_date]
     shares = initial_allocations / initial_prices
     portfolio_values = filtered_prices.dot(shares)
-
     return portfolio_values
+
+
+def sharpe_ratio_portfolio(
+    purchase_date: ql.Date,
+    prices: pd.DataFrame,
+    sorted_assets: list,
+    sorted_weights: list,
+    risk_free_rate: float,
+) -> float:
+    purchase_date = pd.Timestamp(purchase_date.to_date()).tz_localize("UTC")
+    filtered_prices = prices[sorted_assets].loc[purchase_date:]
+    
+    returns = get_returns(filtered_prices)
+    mean_returns = returns.mean()
+    cov_matrix = returns.cov()
+
+    sharpe_ratio = -negative_sharpe_ratio(
+        weights=np.array(sorted_weights),
+        mean_returns=mean_returns,
+        cov_matrix=cov_matrix,
+        risk_free_rate=risk_free_rate / 252
+    )
+    return sharpe_ratio
 
 
 def metrics(portfolio_values: pd.Series) -> dict:
