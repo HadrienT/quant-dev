@@ -9,3 +9,5 @@ service_name    = "webapp-cloud-run"
 github_owner            = "HadrienT"
 github_repo_name        = "quant-dev"
 builder_service_account = "sa-cloud-build@quant-dev-442615.iam.gserviceaccount.com"
+
+domain_name = "tramonihadrien-portfolio.com"

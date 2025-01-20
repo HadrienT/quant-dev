@@ -76,3 +76,22 @@ data "google_iam_policy" "no_auth_policy" {
     ]
   }
 }
+
+
+resource "google_cloud_run_domain_mapping" "portfolio_domain" {
+  name     = var.domain_name
+  location = var.region
+
+  spec {
+    route_name = google_cloud_run_v2_service.service.name
+  }
+  metadata {
+    namespace = google_cloud_run_v2_service.service.project
+  }
+}
+
+# resource "google_managed_ssl_certificate" "ssl_certificate" {
+#   name    = "ssl-${var.domain_name}"
+#   domains = [var.domain_name]
+#   project = var.project_id
+# }

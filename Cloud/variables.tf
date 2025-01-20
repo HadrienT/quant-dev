@@ -68,3 +68,7 @@ variable "fred_api_key" {
   type        = string
   sensitive   = true
 }
+
+variable "domain_name" {
+  description = "Custom domain to map to Cloud Run service"
+}
