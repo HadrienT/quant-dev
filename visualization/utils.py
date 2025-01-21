@@ -27,6 +27,18 @@ def get_stock_performance_table(
     sorted_weights: list,
     ql_start_date: ql.Date,
 ):
+    """
+    Create a table summarizing stock performance based on sorted assets and weights.
+
+    Args:
+        prices (pd.DataFrame): DataFrame containing stock prices.
+        sorted_assets (list): List of sorted assets.
+        sorted_weights (list): List of corresponding weights for the assets.
+        ql_start_date (ql.Date): Start date for performance calculation.
+
+    Returns:
+        pd.DataFrame: Summary DataFrame with performance metrics.
+    """
     # Convert QuantLib Dates to Timestamps
     start_date = pd.Timestamp(ql_start_date.to_date()).tz_localize("UTC")
     end_date = prices.index[-1]
@@ -56,6 +68,15 @@ def get_stock_performance_table(
 
 
 def adf_test(series: pd.Series) -> dict[str, Any]:
+    """
+    Wrapper to perform the Augmented Dickey-Fuller test to check for stationarity.
+
+    Args:
+        series (pd.Series): Time series data to test.
+
+    Returns:
+        dict[str, Any]: Results of the ADF test.
+    """
     result = adfuller(series, autolag="AIC")
     return {
         "ADF Statistic": result[0],
@@ -68,6 +89,12 @@ def adf_test(series: pd.Series) -> dict[str, Any]:
 
 
 def stationarity_test(series: pd.Series) -> None:
+    """
+    Display stationarity test results using Streamlit.
+
+    Args:
+        series (pd.Series): Time series data to test.
+    """
     st.title("Augmented Dickey-Fuller Test")
     # Perform the ADF test
     adf_results = adf_test(series)
@@ -123,6 +150,16 @@ def stationarity_test(series: pd.Series) -> None:
 
 
 def calculate_coint(stock_pair: tuple[str], data: pd.DataFrame) -> dict[str, float]:
+    """
+    Calculate cointegration metrics for a pair of stocks.
+
+    Args:
+        stock_pair (tuple[str]): Pair of stock tickers.
+        data (pd.DataFrame): DataFrame containing stock prices.
+
+    Returns:
+        dict[str, float]: Cointegration score and p-value.
+    """
     stockA, stockB = stock_pair
     score, p_value, _ = coint(data[stockA], data[stockB])
     return {"score": score, "p_value": p_value}
@@ -136,6 +173,12 @@ def calculate_coint(stock_pair: tuple[str], data: pd.DataFrame) -> dict[str, flo
 #     return combined_df
 
 def load_data() -> pd.DataFrame:
+    """
+    Load financial data from BigQuery.
+
+    Returns:
+        pd.DataFrame: Sorted financial data.
+    """
     client = bigquery.Client()
 
     PROJECT_ID = "quant-dev-442615"
@@ -147,15 +190,23 @@ def load_data() -> pd.DataFrame:
     WHERE Date > '2020-01-01'
     """
     
-    combined_df = client.query(query).to_dataframe()
+    df = client.query(query).to_dataframe()
 
-    combined_df = combined_df.drop_duplicates(subset=["Date", "Ticker"])
+    df = df.drop_duplicates(subset=["Date", "Ticker"])
 
-    return combined_df.sort_values(by=["Date"])
+    return df.sort_values(by=["Date"])
 
 @st.cache_data
 def load_prices(special_filters: list[str] = None) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Load and transform asset price data."""
+    """
+    Load and transform asset price data.
+
+    Args:
+        special_filters (list[str], optional): List of tickers to filter. Defaults to None.
+
+    Returns:
+        tuple[pd.DataFrame, pd.DataFrame]: Raw data and filtered price data.
+    """
     df = load_data()
     prices = df.pivot(index="Date", columns="Ticker", values="Close")
     prices = prices.infer_objects().interpolate(method="linear")
@@ -173,7 +224,15 @@ def load_prices(special_filters: list[str] = None) -> tuple[pd.DataFrame, pd.Dat
 
 @st.cache_data
 def calculate_sp500_returns(prices):
-    """Calculate daily returns of the S&P 500."""
+    """
+    Calculate daily returns of the S&P 500.
+
+    Args:
+        prices (pd.DataFrame): DataFrame containing price data.
+
+    Returns:
+        pd.Series: Daily returns of the S&P 500.
+    """
     if "^GSPC" not in prices.columns:
         st.warning("The ticker ^GSPC is not present in the data.")
         return None
@@ -183,6 +242,17 @@ def calculate_sp500_returns(prices):
 def calculate_capm_metrics(
     portfolio_returns: pd.Series, market_returns: pd.Series, risk_free_rate: float
 ) -> tuple[float, float, Any]:
+    """
+    Calculate CAPM metrics (Alpha and Beta).
+
+    Args:
+        portfolio_returns (pd.Series): Portfolio returns.
+        market_returns (pd.Series): Market returns.
+        risk_free_rate (float): Risk-free rate.
+
+    Returns:
+        tuple[float, float, Any]: Alpha, Beta, and model summary.
+    """
     portfolio_returns = portfolio_returns.dropna()
     market_returns = market_returns.dropna()
     # Adjust returns for the risk-free rate
@@ -205,25 +275,72 @@ def calculate_capm_metrics(
 
 @st.cache_data
 def get_risk_free_rate() -> float:
+    """
+    Retrieve the latest risk-free rate from the FRED API.
+
+    Returns:
+        float: Risk-free rate.
+    """
     fred = Fred(api_key=fred_api_key)
     ten_year_treasury_rate = fred.get_series_latest_release("GS10") / 100
     return ten_year_treasury_rate.iloc[-1]
 
 
-def is_business_day(date):
+def is_business_day(date) -> bool:
+    """
+    Check if a given date is a business day.
+
+    Args:
+        date (pd.Timestamp): Date to check.
+
+    Returns:
+        bool: True if business day, False otherwise.
+    """
     ql_date = ql.Date(date.day, date.month, date.year)
     return calendar.isBusinessDay(ql_date)
 
 
-def portfolio_return(weights, mean_returns):
+def portfolio_return(weights:np.array, mean_returns:np.ndarray) -> float:
+    """
+    Calculate the expected return of a portfolio.
+
+    Args:
+        weights (np.array): Asset weights.
+        mean_returns (np.ndarray): Mean returns of assets.
+
+    Returns:
+        float: Portfolio return.
+    """
     return np.sum(mean_returns * weights)
 
 
-def portfolio_volatility(weights, cov_matrix):
+def portfolio_volatility(weights:np.array, cov_matrix:np.ndarray) -> float:
+    """
+    Calculate portfolio volatility.
+
+    Args:
+        weights (np.array): Asset weights.
+        cov_matrix (np.ndarray): Covariance matrix of asset returns.
+
+    Returns:
+        float: Portfolio volatility.
+    """
     return np.sqrt(np.dot(weights.T, np.dot(cov_matrix, weights)))
 
 
-def negative_sharpe_ratio(weights, mean_returns, cov_matrix, risk_free_rate):
+def negative_sharpe_ratio(weights:np.array, mean_returns:np.ndarray, cov_matrix:np.ndarray, risk_free_rate:float) -> float:
+    """
+    Calculate the negative Sharpe ratio of a portfolio.
+
+    Args:
+        weights (np.array): Asset weights.
+        mean_returns (np.ndarray): Mean returns of assets.
+        cov_matrix (np.ndarray): Covariance matrix of asset returns.
+        risk_free_rate (float): Risk-free rate.
+
+    Returns:
+        float: Negative Sharpe ratio.
+    """
     p_return = portfolio_return(weights, mean_returns)
     p_volatility = portfolio_volatility(weights, cov_matrix)
     return -(p_return - risk_free_rate) / p_volatility
@@ -236,6 +353,19 @@ def get_portfolio(
     start_date: ql.Date = None,
     end_date: ql.Date = None,
 ) -> Any:
+    """
+    Optimize a portfolio using Sharpe ratio maximization.
+
+    Args:
+        returns (pd.DataFrame): Asset returns.
+        risk_free_rate (float): Risk-free rate.
+        max_share (float): Maximum allowable weight for any asset.
+        start_date (ql.Date, optional): Start date for returns. Defaults to None.
+        end_date (ql.Date, optional): End date for returns. Defaults to None.
+
+    Returns:
+        Any: Optimization result.
+    """
     work_returns = returns
     if start_date:
         start_date = pd.Timestamp(start_date.to_date()).tz_localize("UTC")
@@ -263,6 +393,15 @@ def get_portfolio(
 
 
 def get_returns(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Calculate daily returns for a DataFrame of prices.
+
+    Args:
+        df (pd.DataFrame): DataFrame containing asset prices.
+
+    Returns:
+        pd.DataFrame: DataFrame of daily returns.
+    """
     business_day_df = df[df.index.map(lambda x: is_business_day(x))]
     returns = np.log(business_day_df / business_day_df.shift(1))
     return returns
@@ -271,6 +410,17 @@ def get_returns(df: pd.DataFrame) -> pd.DataFrame:
 def filter_portfolio(
     optimal_weights: np.array, assets: list, threshold: float = 0.005
 ) -> tuple[list, list]:
+    """
+    Filter portfolio assets based on a weight threshold.
+
+    Args:
+        optimal_weights (np.array): Array of asset weights.
+        assets (list): List of asset names.
+        threshold (float, optional): Minimum weight to retain asset. Defaults to 0.005.
+
+    Returns:
+        tuple[list, list]: Filtered assets and corresponding weights.
+    """
     filtered_indices = optimal_weights >= threshold
     filtered_assets = [assets[i] for i in range(len(assets)) if filtered_indices[i]]
     filtered_weights = optimal_weights[filtered_indices]
@@ -281,6 +431,13 @@ def filter_portfolio(
 
 
 def plot_portfolio(sorted_assets: list, sorted_weights: list) -> None:
+    """
+    Plot the weights of an optimized portfolio.
+
+    Args:
+        sorted_assets (list): List of asset names.
+        sorted_weights (list): List of corresponding weights.
+    """
     plt.bar(sorted_assets, sorted_weights)
     plt.title("Optimal Portfolio Weights")
     plt.ylabel("Weight")
@@ -292,6 +449,16 @@ def plot_portfolio(sorted_assets: list, sorted_weights: list) -> None:
 
 
 def get_latest_available_date(date: ql.Date, prices: pd.DataFrame) -> ql.Date:
+    """
+    Find the latest available date for price data relative to a given date.
+
+    Args:
+        date (ql.Date): Target date.
+        prices (pd.DataFrame): DataFrame containing price data.
+
+    Returns:
+        ql.Date: Closest available date.
+    """
     date = pd.Timestamp(date.to_date()).tz_localize("UTC")
     if date in prices.index:
         closest_date = date
@@ -310,6 +477,19 @@ def track_portfolio_value(
     sorted_weights: list,
     initial_capital: int,
 ) -> pd.Series:
+    """
+    Track the value of a portfolio over time.
+
+    Args:
+        purchase_date (ql.Date): Date of purchase.
+        prices (pd.DataFrame): DataFrame of asset prices.
+        sorted_assets (list): List of asset names.
+        sorted_weights (list): List of corresponding weights.
+        initial_capital (int): Initial capital allocated.
+
+    Returns:
+        pd.Series: Time series of portfolio value.
+    """
     purchase_date = pd.Timestamp(purchase_date.to_date()).tz_localize("UTC")
     filtered_prices = prices[sorted_assets].loc[purchase_date:]
     initial_allocations = sorted_weights * initial_capital
@@ -326,6 +506,19 @@ def sharpe_ratio_portfolio(
     sorted_weights: list,
     risk_free_rate: float,
 ) -> float:
+    """
+    Calculate the Sharpe ratio for an optimized portfolio.
+
+    Args:
+        purchase_date (ql.Date): Date of purchase.
+        prices (pd.DataFrame): DataFrame of asset prices.
+        sorted_assets (list): List of asset names.
+        sorted_weights (list): List of corresponding weights.
+        risk_free_rate (float): Risk-free rate.
+
+    Returns:
+        float: Sharpe ratio.
+    """
     purchase_date = pd.Timestamp(purchase_date.to_date()).tz_localize("UTC")
     filtered_prices = prices[sorted_assets].loc[purchase_date:]
     
@@ -343,6 +536,15 @@ def sharpe_ratio_portfolio(
 
 
 def metrics(portfolio_values: pd.Series) -> dict:
+    """
+    Calculate portfolio performance metrics.
+
+    Args:
+        portfolio_values (pd.Series): Time series of portfolio values.
+
+    Returns:
+        dict: Dictionary containing performance metrics.
+    """
     portfolio_values = portfolio_values.dropna()
     ath_value = portfolio_values.max()
     atl_value = portfolio_values.min()
@@ -364,14 +566,46 @@ def metrics(portfolio_values: pd.Series) -> dict:
 
 
 def calculate_implied_volatility(
-    option_type,
-    strike,
-    market_price,
-    spot_price,
-    risk_free_rate,
-    dividend_yield,
-    expiry,
-):
+    option_type: ql.Option.Type,
+    strike: float,
+    market_price: float,
+    spot_price: float,
+    risk_free_rate: float,
+    dividend_yield: float,
+    expiry: float,
+) -> float:
+    """
+    Calculate the implied volatility of a European option using QuantLib.
+
+    Parameters:
+    -----------
+    option_type : ql.Option.Type
+        The type of the option (e.g., ql.Option.Call or ql.Option.Put).
+    strike : float
+        The strike price of the option.
+    market_price : float
+        The observed market price of the option.
+    spot_price : float
+        The current price of the underlying asset.
+    risk_free_rate : float
+        The continuously compounded risk-free interest rate (annualized).
+    dividend_yield : float
+        The continuously compounded dividend yield (annualized).
+    expiry : float
+        Time to expiration in years.
+
+    Returns:
+    --------
+    float
+        The implied volatility of the option. If the input parameters are invalid 
+        (e.g., non-positive market price, strike, or expiry), or if the implied 
+        volatility cannot be calculated, returns np.nan.
+
+    Notes:
+    ------
+    This function uses QuantLib to model the European option and employs the 
+    Black-Scholes-Merton framework for calculating implied volatility.
+    """
     if market_price <= 0 or strike <= 0 or expiry <= 0:
         return np.nan
 
