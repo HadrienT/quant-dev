@@ -8,8 +8,6 @@ import datetime
 import random
 
 def randomize_selection(stocks, index, minerals, etf, crypto, bond):
-    print("Randomizing selection")
-    print(f"Stocks: {st.session_state['stocks_selection']}")
     st.session_state["example_selection"] = None
     random_tickers = (
     random.sample(stocks, k=random.randint(0, len(stocks)//2))
@@ -37,7 +35,19 @@ def randomize_selection(stocks, index, minerals, etf, crypto, bond):
         "bonds_selection": [ticker for ticker in random_tickers if ticker in bond],
     })
 
-    print(f"Stocks: {st.session_state['stocks_selection']}")
+
+def reset_session_state():
+    st.session_state.update({
+        "selected_tickers": [],
+        "start_date": datetime.date(2023, 1, 1),
+        "end_date": datetime.date(2024, 1, 1),
+        "stocks_selection": [],
+        "indexes_selection": [],
+        "minerals_selection": [],
+        "etf_selection": [],
+        "crypto_selection": [],
+        "bonds_selection": []
+    })
 
 
 def page_portfolio():
@@ -47,7 +57,6 @@ def page_portfolio():
     _, prices = utils.load_prices()
     risk_free_rate = utils.get_risk_free_rate()
     sp500_returns = utils.calculate_sp500_returns(prices)
-    print(f"Risk free rate: {risk_free_rate:.2%}")
     st.title("Make Your Portfolio")
 
     # --- List of tickers ---
@@ -109,9 +118,8 @@ def page_portfolio():
     )
 
     if "last_selected_example" not in st.session_state:
-        st.session_state["last_selected_example"] = None  # Initialise la sélection précédente
+        st.session_state["last_selected_example"] = None 
 
-# Si la sélection a changé
     if selected_example and selected_example != st.session_state["last_selected_example"]:
         portfolio = example_portfolios[selected_example]
         st.session_state.update(
@@ -138,27 +146,17 @@ def page_portfolio():
             ticker for ticker in portfolio["tickers"] if ticker in bond
         ],
     )
-    # Mettez à jour la dernière sélection
     st.session_state["last_selected_example"] = selected_example
     
     col1, col2 = st.columns(2)
 
     with col1:
-        # st.button("Fully Randomize", on_click=randomize_selection, args=(stocks, index, minerals, etf, crypto, bond))
         if st.button("Randomize Selection"):
             randomize_selection(stocks, index, minerals, etf, crypto, bond)
 
     with col2:
         if st.button("Reset All"):
-            st.session_state["selected_tickers"] = []
-            st.session_state["start_date"] = datetime.date(2023, 1, 1)
-            st.session_state["end_date"] = datetime.date(2024, 1, 1)
-            st.session_state["stocks_selection"] = []
-            st.session_state["indexes_selection"] = []
-            st.session_state["minerals_selection"] = []
-            st.session_state["etf_selection"] = []
-            st.session_state["crypto_selection"] = []
-            st.session_state["bonds_selection"] = []
+           reset_session_state()
 
     # --- User Interface ---
     st.markdown("**Choose your tickers from the categories below:**")

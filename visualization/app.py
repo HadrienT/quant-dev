@@ -6,13 +6,14 @@ from portfolio import page_portfolio
 from home_page import page_home
 from impliedVolatility import page_IV
 from pairtrading import page_pairtrading
+from dynamicPortfolio import page_dynamicPortfolio
 
 
 # --- Navigation bar ---
 st.sidebar.title("Navigation")
 page = st.sidebar.radio(
     "Go to:",
-    ["Home Page", "Make a Portfolio", "Implied Volatility", "Pair Trading", "About"],
+    ["Home Page", "Make a Portfolio", "Implied Volatility", "Pair Trading", "About", "Dynamic Portfolio"],
 )
 
 # --- Display the corresponding page ---
@@ -29,3 +30,6 @@ elif page == "About":
 
 elif page == "Pair Trading":
     page_pairtrading()
+    
+elif page == "Dynamic Portfolio":
+    page_dynamicPortfolio()
