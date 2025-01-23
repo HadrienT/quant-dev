@@ -84,6 +84,10 @@ def reset_session_state():
     })
 
 
+@st.cache_data
+def get_stock_tickers():
+    return pd.read_csv("tickers.csv", header=None)[0].tolist()
+
 def page_dynamicPortfolio():
     global init
     st.text(
@@ -95,7 +99,10 @@ def page_dynamicPortfolio():
     st.title("Make Your Portfolio")
 
     # --- List of tickers ---
-    stocks = sorted(["AAPL", "MSFT", "GOOGL", "AMZN", "TSLA", "BRK-B", "NVDA", "META"])
+    
+    top_stocks = sorted(["AAPL", "MSFT", "GOOGL", "AMZN", "TSLA", "BRK-B", "NVDA", "META"])
+    all_stocks = get_stock_tickers()
+    stocks = top_stocks + [stock for stock in all_stocks if stock not in top_stocks]
     index = sorted(["^GSPC", "^DJI", "^IXIC", "^FTSE", "^GDAXI", "^FCHI", "^N225", "URTH"])
     minerals = sorted(["GC=F", "SI=F", "CL=F", "BZ=F", "HG=F"])
     etf = sorted(["SPY", "QQQ", "VTI", "EEM", "IWM", "GLD", "TLT"])

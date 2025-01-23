@@ -25,7 +25,7 @@ def download_previous_day_data(tickers):
     # start_date = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
     # end_date = (datetime.now() - timedelta(days=0)).strftime("%Y-%m-%d")
 
-    current_date = datetime.now() - timedelta(days=1)
+    current_date = datetime.now() - timedelta(days=10)
     while not pd.Timestamp(current_date).isoweekday() in range(
         1, 6
     ):  # Monday (1) to Friday (5)
@@ -202,5 +202,5 @@ def main(request):
 
 
 if __name__ == "__main__":
-    fill_table()
-    # add_daily()
+    # fill_table()
+    add_daily()

@@ -5,10 +5,11 @@ resource "google_storage_bucket" "function_code_bucket" {
 }
 
 resource "google_storage_bucket_object" "function_code" {
-  name   = "function.zip"
+  name   = "function-${filemd5("${path.module}/scripts/dataColCF.zip")}.zip"
   bucket = google_storage_bucket.function_code_bucket.name
   source = "${path.module}/scripts/dataColCF.zip"
 }
+
 
 resource "google_cloudfunctions_function" "add_daily_function" {
   name        = "add_daily_sp500_data"
