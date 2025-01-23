@@ -54,14 +54,14 @@ def get_stock_performance_table(
     # Calculate total returns
     total_returns = ((end_prices - start_prices) / start_prices) * 100
 
-    # Create a summary DataFrame
+    # Create a summary DataFrame with rounded values
     summary_df = pd.DataFrame(
         {
             "Ticker": sorted_assets,
-            "Start Price": start_prices.values,
-            "End Price": end_prices.values,
-            "Total Return (%)": total_returns.values,
-            "Weight (%)": [w * 100 for w in sorted_weights],
+            "Start Price": start_prices.values.round(2),
+            "End Price": end_prices.values.round(2),
+            "Total Return (%)": total_returns.values.round(2),
+            "Weight (%)": [round(w * 100, 2) for w in sorted_weights],
         }
     ).set_index("Ticker")
 
