@@ -12,8 +12,8 @@ jobs:
   test_GetData:
     runs-on: ubuntu-latest
 
-    container:
-      image: python:3.11.0-slim-bullseye  # Debian-based Python image
+    # container:
+    #   image: python:3.11.0-slim-bullseye  # Debian-based Python image
 
     steps:
       # Step 1: Checkout the code
