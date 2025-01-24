@@ -42,13 +42,14 @@ def dynamic_initialization():
 def randomize_selection(stocks, index, minerals, etf, crypto, bond):
     st.session_state["example_selection"] = None
     random_tickers = (
-    random.sample(stocks, k=random.randint(0, len(stocks)//2))
-    + random.sample(index, k=random.randint(0, len(index)//2))
-    + random.sample(minerals, k=random.randint(0, len(minerals)//2))
-    + random.sample(etf, k=random.randint(0, len(etf)//2))
-    + random.sample(crypto, k=random.randint(0, len(crypto)//2))
-    + random.sample(bond, k=random.randint(0, len(bond)//2))
-        )
+    random.sample(stocks, k=random.randint(0, min(len(stocks)//2, 5)))
+    + random.sample(index, k=random.randint(0, min(len(index)//2, 5)))
+    + random.sample(minerals, k=random.randint(0, min(len(minerals)//2, 5)))
+    + random.sample(etf, k=random.randint(0, min(len(etf)//2, 5)))
+    + random.sample(crypto, k=random.randint(0, min(len(crypto)//2, 5)))
+    + random.sample(bond, k=random.randint(0, min(len(bond)//2, 5)))
+)
+
 
     random_start_date = datetime.date(
         random.randint(2021, 2023), random.randint(1, 12), random.randint(1, 28)
