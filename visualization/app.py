@@ -1,6 +1,6 @@
 import streamlit as st
 
-st.set_page_config(page_title="Multi-Page Application", layout="wide")
+st.set_page_config(page_title="Financial Data Experimentation Hub", layout="wide")
 from about import page_about
 from home_page import page_home
 from impliedVolatility import page_IV
