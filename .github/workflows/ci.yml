@@ -34,6 +34,9 @@ jobs:
           pip-compile requirements.in --output-file=requirements.txt
           pip install -r requirements.txt
 
+      - name: Install pytest
+        run: pip install pytest
+
       # Step 4: Run tests for GetData
       - name: Run tests for GetData
         working-directory: ./GetData
@@ -42,8 +45,8 @@ jobs:
   test_visualization:
     runs-on: ubuntu-latest
 
-    container:
-      image: python:3.11-slim-bullseye  # Debian-based Python image
+    # container:
+    #   image: python:3.11-slim-bullseye  # Debian-based Python image
 
     steps:
       # Step 1: Checkout the code
@@ -64,6 +67,9 @@ jobs:
           pip-compile requirements.in --output-file=requirements.txt
           pip install -r requirements.txt
 
+      - name: Install pytest
+        run: pip install pytest
+
       # Step 4: Run tests for visualization
       - name: Run tests for Visualization
         working-directory: ./visualization
@@ -72,8 +78,8 @@ jobs:
   linting:
     runs-on: ubuntu-latest
 
-    container:
-      image: python:3.11-slim-bullseye  # Debian-based Python image
+    # container:
+    #   image: python:3.11-slim-bullseye  # Debian-based Python image
 
     steps:
       # Step 1: Checkout the code
