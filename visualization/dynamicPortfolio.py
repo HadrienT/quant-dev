@@ -85,9 +85,6 @@ def reset_session_state():
     })
 
 
-@st.cache_data
-def get_stock_tickers():
-    return pd.read_csv("tickers.csv", header=None)[0].tolist()
 
 def page_dynamicPortfolio():
     global init
@@ -306,7 +303,7 @@ def page_dynamicPortfolio():
                 initial_capital=initial_capital,
             )
             
-            portfolio_rebalanced_values,_,_  =  utils.rebalance_portfolio(prices=prices,selected_tickers=sorted_assets, initial_capital=initial_capital, rebalance_freq=rebalance_freq, risk_free_rate=risk_free_rate,max_share=max_share, start_date=ql_start_date, end_date=ql_end_date )
+            portfolio_rebalanced_values,allocation_history, sharpe_ratios  =  utils.rebalance_portfolio(prices=prices,selected_tickers=sorted_assets, initial_capital=initial_capital, rebalance_freq=rebalance_freq, risk_free_rate=risk_free_rate,max_share=max_share, start_date=ql_start_date, end_date=ql_end_date )
             portfolio_values = portfolio_rebalanced_values
             summary_df = utils.get_stock_performance_table(
                 prices, sorted_assets, sorted_weights, ql_end_date
@@ -441,6 +438,26 @@ def page_dynamicPortfolio():
 
         else:
             st.warning("Please select at least one ticker before validating.")
+
+    st.header("Notes on Portfolio Optimization")
+    st.write("""
+    **Working Assumptions:**
+    - We assume no slippage, no taxes, no transaction fees, no liquidity constraints, no short selling, and no leverage.
+    - These assumptions simplify the modeling process for a theoretical approach and does not fully reflect real-world scenarios.
+    """)
+    st.write("""
+    **Rebalancing Approach:**
+    - During rebalancing, we assume that all assets are completely sold and then repurchased based on the new weights. 
+    - This is a simplification, as real-world portfolio adjustments would incur transaction fees and be influenced by liquidity constraints.
+    """)
+    st.write("""
+**Dynamic Portfolio Observations:**
+- In dynamic portfolios, asset weights often exhibit abrupt shifts between zero and the maximum cap. 
+- This phenomenon arises due to the high sensitivity of the optimization process. 
+- Notably, removing just a single data point from a large dataset can result in significant changes, with some assets losing nearly all their allocation.
+- A potential improvement could involve using a Kalman filter to update the weights more gradually, providing smoother transitions and reducing abrupt changes in allocations.
+""")
+
 
 
 # Launch the page
