@@ -108,14 +108,14 @@ def page_pairtrading():
                 z_score = (spread - spread_mean) / spread_std
 
                 threshold = 2
-                st.write(f"### Trading Strategy")
+                st.write("### Trading Strategy")
                 st.write(
                     f"Buy {stock_a} and sell {stock_b} when z-score is below -{threshold}"
                 )
                 st.write(
                     f"Sell {stock_a} and buy {stock_b} when z-score is above {threshold}"
                 )
-                st.write(f"### Spread Z-Score")
+                st.write("### Spread Z-Score")
                 fig = go.Figure()
                 fig.add_trace(
                     go.Scatter(
