@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
 
     container:
-      image: python:3.11-slim-bullseye  # Debian-based Python image
+      image: python:3.11-slim  # Debian-based Python image
 
     steps:
       # Step 1: Checkout the code
