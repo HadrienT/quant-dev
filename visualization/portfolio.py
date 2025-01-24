@@ -7,47 +7,62 @@ import numpy as np
 import datetime
 import random
 
+
 def randomize_selection(stocks, index, minerals, etf, crypto, bond):
     st.session_state["example_selection"] = None
     random_tickers = (
-    random.sample(stocks, k=random.randint(0, len(stocks)//2))
-    + random.sample(index, k=random.randint(0, len(index)//2))
-    + random.sample(minerals, k=random.randint(0, len(minerals)//2))
-    + random.sample(etf, k=random.randint(0, len(etf)//2))
-    + random.sample(crypto, k=random.randint(0, len(crypto)//2))
-    + random.sample(bond, k=random.randint(0, len(bond)//2))
-        )
+        random.sample(stocks, k=random.randint(0, len(stocks) // 2))
+        + random.sample(index, k=random.randint(0, len(index) // 2))
+        + random.sample(minerals, k=random.randint(0, len(minerals) // 2))
+        + random.sample(etf, k=random.randint(0, len(etf) // 2))
+        + random.sample(crypto, k=random.randint(0, len(crypto) // 2))
+        + random.sample(bond, k=random.randint(0, len(bond) // 2))
+    )
 
     random_start_date = datetime.date(
         random.randint(2021, 2023), random.randint(1, 12), random.randint(1, 28)
     )
-    random_end_date = random_start_date + datetime.timedelta(days=random.randint(30, 365))
+    random_end_date = random_start_date + datetime.timedelta(
+        days=random.randint(30, 365)
+    )
 
-    st.session_state.update({
-        "selected_tickers": random_tickers,
-        "start_date": random_start_date,
-        "end_date": random_end_date,
-        "stocks_selection": [ticker for ticker in random_tickers if ticker in stocks],
-        "indexes_selection": [ticker for ticker in random_tickers if ticker in index],
-        "minerals_selection": [ticker for ticker in random_tickers if ticker in minerals],
-        "etf_selection": [ticker for ticker in random_tickers if ticker in etf],
-        "crypto_selection": [ticker for ticker in random_tickers if ticker in crypto],
-        "bonds_selection": [ticker for ticker in random_tickers if ticker in bond],
-    })
+    st.session_state.update(
+        {
+            "selected_tickers": random_tickers,
+            "start_date": random_start_date,
+            "end_date": random_end_date,
+            "stocks_selection": [
+                ticker for ticker in random_tickers if ticker in stocks
+            ],
+            "indexes_selection": [
+                ticker for ticker in random_tickers if ticker in index
+            ],
+            "minerals_selection": [
+                ticker for ticker in random_tickers if ticker in minerals
+            ],
+            "etf_selection": [ticker for ticker in random_tickers if ticker in etf],
+            "crypto_selection": [
+                ticker for ticker in random_tickers if ticker in crypto
+            ],
+            "bonds_selection": [ticker for ticker in random_tickers if ticker in bond],
+        }
+    )
 
 
 def reset_session_state():
-    st.session_state.update({
-        "selected_tickers": [],
-        "start_date": datetime.date(2023, 1, 1),
-        "end_date": datetime.date(2024, 1, 1),
-        "stocks_selection": [],
-        "indexes_selection": [],
-        "minerals_selection": [],
-        "etf_selection": [],
-        "crypto_selection": [],
-        "bonds_selection": []
-    })
+    st.session_state.update(
+        {
+            "selected_tickers": [],
+            "start_date": datetime.date(2023, 1, 1),
+            "end_date": datetime.date(2024, 1, 1),
+            "stocks_selection": [],
+            "indexes_selection": [],
+            "minerals_selection": [],
+            "etf_selection": [],
+            "crypto_selection": [],
+            "bonds_selection": [],
+        }
+    )
 
 
 def page_portfolio():
@@ -61,7 +76,9 @@ def page_portfolio():
 
     # --- List of tickers ---
     stocks = sorted(["AAPL", "MSFT", "GOOGL", "AMZN", "TSLA", "BRK-B", "NVDA", "META"])
-    index = sorted(["^GSPC", "^DJI", "^IXIC", "^FTSE", "^GDAXI", "^FCHI", "^N225", "URTH"])
+    index = sorted(
+        ["^GSPC", "^DJI", "^IXIC", "^FTSE", "^GDAXI", "^FCHI", "^N225", "URTH"]
+    )
     minerals = sorted(["GC=F", "SI=F", "CL=F", "BZ=F", "HG=F"])
     etf = sorted(["SPY", "QQQ", "VTI", "EEM", "IWM", "GLD", "TLT"])
     crypto = sorted(["BTC-USD", "ETH-USD", "BNB-USD", "XRP-USD"])
@@ -97,57 +114,60 @@ def page_portfolio():
 
     # Initialize session state for dynamic updates
     if "example_selection" not in st.session_state:
-        st.session_state.update({
-            "example_selection": None,
-            "selected_tickers": [],
-            "max_share": 0.3,
-            "start_date": datetime.date(2023, 1, 1),
-            "end_date": datetime.date(2024, 1, 1),
-            "stocks_selection": [],
-            "indexes_selection": [],
-            "minerals_selection": [],
-            "etf_selection": [],
-            "crypto_selection": [],
-            "bonds_selection": [],
-        })
+        st.session_state.update(
+            {
+                "example_selection": None,
+                "selected_tickers": [],
+                "max_share": 0.3,
+                "start_date": datetime.date(2023, 1, 1),
+                "end_date": datetime.date(2024, 1, 1),
+                "stocks_selection": [],
+                "indexes_selection": [],
+                "minerals_selection": [],
+                "etf_selection": [],
+                "crypto_selection": [],
+                "bonds_selection": [],
+            }
+        )
 
     selected_example = st.radio(
         "Select a predefined portfolio (optional):",
         options=[None] + list(example_portfolios.keys()),
-        horizontal=True
+        horizontal=True,
     )
 
     if "last_selected_example" not in st.session_state:
-        st.session_state["last_selected_example"] = None 
+        st.session_state["last_selected_example"] = None
 
-    if selected_example and selected_example != st.session_state["last_selected_example"]:
+    if (
+        selected_example
+        and selected_example != st.session_state["last_selected_example"]
+    ):
         portfolio = example_portfolios[selected_example]
         st.session_state.update(
-        selected_tickers=portfolio["tickers"],
-        max_share=portfolio["max_share"],
-        start_date=portfolio["start_date"],
-        end_date=portfolio["end_date"],
-        stocks_selection=[
-            ticker for ticker in portfolio["tickers"] if ticker in stocks
-        ],
-        indexes_selection=[
-            ticker for ticker in portfolio["tickers"] if ticker in index
-        ],
-        minerals_selection=[
-            ticker for ticker in portfolio["tickers"] if ticker in minerals
-        ],
-        etf_selection=[
-            ticker for ticker in portfolio["tickers"] if ticker in etf
-        ],
-        crypto_selection=[
-            ticker for ticker in portfolio["tickers"] if ticker in crypto
-        ],
-        bonds_selection=[
-            ticker for ticker in portfolio["tickers"] if ticker in bond
-        ],
-    )
+            selected_tickers=portfolio["tickers"],
+            max_share=portfolio["max_share"],
+            start_date=portfolio["start_date"],
+            end_date=portfolio["end_date"],
+            stocks_selection=[
+                ticker for ticker in portfolio["tickers"] if ticker in stocks
+            ],
+            indexes_selection=[
+                ticker for ticker in portfolio["tickers"] if ticker in index
+            ],
+            minerals_selection=[
+                ticker for ticker in portfolio["tickers"] if ticker in minerals
+            ],
+            etf_selection=[ticker for ticker in portfolio["tickers"] if ticker in etf],
+            crypto_selection=[
+                ticker for ticker in portfolio["tickers"] if ticker in crypto
+            ],
+            bonds_selection=[
+                ticker for ticker in portfolio["tickers"] if ticker in bond
+            ],
+        )
     st.session_state["last_selected_example"] = selected_example
-    
+
     col1, col2 = st.columns(2)
 
     with col1:
@@ -156,7 +176,7 @@ def page_portfolio():
 
     with col2:
         if st.button("Reset All"):
-           reset_session_state()
+            reset_session_state()
 
     # --- User Interface ---
     st.markdown("**Choose your tickers from the categories below:**")
@@ -179,7 +199,7 @@ def page_portfolio():
     start_date = st.date_input("Start Date:", format="DD/MM/YYYY", key="start_date")
     end_date = st.date_input("End Date:", format="DD/MM/YYYY", key="end_date")
 
-     # Multiple selection for each category
+    # Multiple selection for each category
     stock_tickers = st.multiselect(
         label="Stocks",
         options=stocks,
@@ -210,7 +230,7 @@ def page_portfolio():
         options=bond,
         key="bonds_selection",
     )
-    
+
     # Merge all selected tickers
     selected_tickers = (
         stock_tickers
@@ -221,7 +241,7 @@ def page_portfolio():
         + bond_tickers
     )
     st.session_state["selected_tickers"] = list(set(selected_tickers))
-        
+
     # Button to validate the selection
     if st.button("Validate Selection"):
         # Check if the user has made a selection
@@ -258,7 +278,9 @@ def page_portfolio():
             sorted_assets, sorted_weights = utils.filter_portfolio(
                 optimal_weights, selected_tickers, threshold=0.005
             )
-            portfolio_sharpe_ratio = utils.sharpe_ratio_portfolio(ql_end_date, prices, sorted_assets, sorted_weights, risk_free_rate) * np.sqrt(252)
+            portfolio_sharpe_ratio = utils.sharpe_ratio_portfolio(
+                ql_end_date, prices, sorted_assets, sorted_weights, risk_free_rate
+            ) * np.sqrt(252)
             portfolio_values = utils.track_portfolio_value(
                 ql_end_date,
                 prices,
@@ -346,7 +368,9 @@ def page_portfolio():
 
             # Display portfolio metrics
             st.markdown("### Portfolio Metrics")
-            st.write(f"**Sharpe Ratio (Optimal ratio at purchase):** {optimal_sharpe_ratio:.3f}")
+            st.write(
+                f"**Sharpe Ratio (Optimal ratio at purchase):** {optimal_sharpe_ratio:.3f}"
+            )
             st.write(f"**Sharpe Ratio (Current):** {portfolio_sharpe_ratio:.3f}")
             st.write(f"**All-Time High (ATH):** ${metrics['ATH']:.2f}")
             st.write(f"**All-Time Low (ATL):** ${metrics['ATL']:.2f}")
@@ -356,7 +380,7 @@ def page_portfolio():
             # Calcul des métriques CAPM
 
             # Display the results
-            st.write(f"### CAPM Model Results")
+            st.write("### CAPM Model Results")
             st.write(f"- **Alpha (Risk-adjusted performance)**: {alpha:.4f}")
             st.write(f"- **Beta (Market sensitivity)**: {beta:.4f}")
             st.write("#### Implications:")

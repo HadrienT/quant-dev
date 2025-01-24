@@ -9,11 +9,14 @@ import random
 
 init = True
 
+
 def dynamic_initialization():
     if "rebalance_freq" not in st.session_state:
         st.session_state["rebalance_freq"] = 0
     if "max_share" not in st.session_state:
         st.session_state["max_share"] = 0.3
+    if "min_share" not in st.session_state:
+        st.session_state["min_share"] = 0.05
     if "selected_tickers" not in st.session_state:
         st.session_state["selected_tickers"] = []
     if "start_date" not in st.session_state:
@@ -42,48 +45,62 @@ def dynamic_initialization():
 def randomize_selection(stocks, index, minerals, etf, crypto, bond):
     st.session_state["example_selection"] = None
     random_tickers = (
-    random.sample(stocks, k=random.randint(0, min(len(stocks)//2, 5)))
-    + random.sample(index, k=random.randint(0, min(len(index)//2, 5)))
-    + random.sample(minerals, k=random.randint(0, min(len(minerals)//2, 5)))
-    + random.sample(etf, k=random.randint(0, min(len(etf)//2, 5)))
-    + random.sample(crypto, k=random.randint(0, min(len(crypto)//2, 5)))
-    + random.sample(bond, k=random.randint(0, min(len(bond)//2, 5)))
-)
-
+        random.sample(stocks, k=random.randint(0, min(len(stocks) // 2, 5)))
+        + random.sample(index, k=random.randint(0, min(len(index) // 2, 5)))
+        + random.sample(minerals, k=random.randint(0, min(len(minerals) // 2, 5)))
+        + random.sample(etf, k=random.randint(0, min(len(etf) // 2, 5)))
+        + random.sample(crypto, k=random.randint(0, min(len(crypto) // 2, 5)))
+        + random.sample(bond, k=random.randint(0, min(len(bond) // 2, 5)))
+    )
 
     random_start_date = datetime.date(
         random.randint(2021, 2023), random.randint(1, 12), random.randint(1, 28)
     )
-    random_end_date = random_start_date + datetime.timedelta(days=random.randint(30, 365))
+    random_end_date = random_start_date + datetime.timedelta(
+        days=random.randint(30, 365)
+    )
 
-    st.session_state.update({
-        "selected_tickers": random_tickers,
-        "start_date": random_start_date,
-        "end_date": random_end_date,
-        "stocks_selection": [ticker for ticker in random_tickers if ticker in stocks],
-        "indexes_selection": [ticker for ticker in random_tickers if ticker in index],
-        "minerals_selection": [ticker for ticker in random_tickers if ticker in minerals],
-        "etf_selection": [ticker for ticker in random_tickers if ticker in etf],
-        "crypto_selection": [ticker for ticker in random_tickers if ticker in crypto],
-        "bonds_selection": [ticker for ticker in random_tickers if ticker in bond],
-        "rebalance_freq": random.randint(0, 10),
-    })
+    st.session_state.update(
+        {
+            "selected_tickers": random_tickers,
+            "start_date": random_start_date,
+            "end_date": random_end_date,
+            "stocks_selection": [
+                ticker for ticker in random_tickers if ticker in stocks
+            ],
+            "indexes_selection": [
+                ticker for ticker in random_tickers if ticker in index
+            ],
+            "minerals_selection": [
+                ticker for ticker in random_tickers if ticker in minerals
+            ],
+            "etf_selection": [ticker for ticker in random_tickers if ticker in etf],
+            "crypto_selection": [
+                ticker for ticker in random_tickers if ticker in crypto
+            ],
+            "bonds_selection": [ticker for ticker in random_tickers if ticker in bond],
+            "rebalance_freq": random.randint(0, 10),
+        }
+    )
 
 
 def reset_session_state():
-    st.session_state.update({
-        "selected_tickers": [],
-        "start_date": datetime.date(2023, 1, 1),
-        "end_date": datetime.date(2024, 1, 1),
-        "stocks_selection": [],
-        "indexes_selection": [],
-        "minerals_selection": [],
-        "etf_selection": [],
-        "crypto_selection": [],
-        "bonds_selection": [],
-        "rebalance_freq": 0,
-    })
-
+    st.session_state.update(
+        {
+            "selected_tickers": [],
+            "start_date": datetime.date(2023, 1, 1),
+            "end_date": datetime.date(2024, 1, 1),
+            "stocks_selection": [],
+            "indexes_selection": [],
+            "minerals_selection": [],
+            "etf_selection": [],
+            "crypto_selection": [],
+            "bonds_selection": [],
+            "rebalance_freq": 0,
+            "max_share": 0.3,
+            "min_share": 0.05,
+        }
+    )
 
 
 def page_dynamicPortfolio():
@@ -97,15 +114,23 @@ def page_dynamicPortfolio():
     st.title("Make Your Portfolio")
 
     # --- List of tickers ---
-    
-    top_stocks = sorted(["AAPL", "MSFT", "GOOGL", "AMZN", "TSLA", "BRK-B", "NVDA", "META"])
-    all_stocks = utils.get_stock_tickers()
-    stocks = top_stocks + [stock for stock in all_stocks if stock not in top_stocks]
-    index = sorted(["^GSPC", "^DJI", "^IXIC", "^FTSE", "^GDAXI", "^FCHI", "^N225", "URTH"])
+    index = sorted(
+        ["^GSPC", "^DJI", "^IXIC", "^FTSE", "^GDAXI", "^FCHI", "^N225", "URTH"]
+    )
     minerals = sorted(["GC=F", "SI=F", "CL=F", "BZ=F", "HG=F"])
     etf = sorted(["SPY", "QQQ", "VTI", "EEM", "IWM", "GLD", "TLT"])
     crypto = sorted(["BTC-USD", "ETH-USD", "BNB-USD", "XRP-USD"])
     bond = sorted(["^TYX"])
+
+    top_stocks = sorted(
+        ["AAPL", "MSFT", "GOOGL", "AMZN", "TSLA", "BRK-B", "NVDA", "META"]
+    )
+    all_stocks = utils.get_stock_tickers()
+    stocks = top_stocks + [
+        stock
+        for stock in all_stocks
+        if stock not in top_stocks + minerals + etf + crypto + bond + index
+    ]
 
     st.markdown("### Example Portfolios")
     example_portfolios = {
@@ -142,41 +167,42 @@ def page_dynamicPortfolio():
     selected_example = st.radio(
         "Select a predefined portfolio (optional):",
         options=[None] + list(example_portfolios.keys()),
-        horizontal=True
+        horizontal=True,
     )
 
     if "last_selected_example" not in st.session_state:
-        st.session_state["last_selected_example"] = None 
-        
+        st.session_state["last_selected_example"] = None
+
     # Update session state if a new example is selected otherwise the last selected example will be used
-    if selected_example and selected_example != st.session_state["last_selected_example"]:
+    if (
+        selected_example
+        and selected_example != st.session_state["last_selected_example"]
+    ):
         portfolio = example_portfolios[selected_example]
         st.session_state.update(
-        selected_tickers=portfolio["tickers"],
-        max_share=portfolio["max_share"],
-        start_date=portfolio["start_date"],
-        end_date=portfolio["end_date"],
-        stocks_selection=[
-            ticker for ticker in portfolio["tickers"] if ticker in stocks
-        ],
-        indexes_selection=[
-            ticker for ticker in portfolio["tickers"] if ticker in index
-        ],
-        minerals_selection=[
-            ticker for ticker in portfolio["tickers"] if ticker in minerals
-        ],
-        etf_selection=[
-            ticker for ticker in portfolio["tickers"] if ticker in etf
-        ],
-        crypto_selection=[
-            ticker for ticker in portfolio["tickers"] if ticker in crypto
-        ],
-        bonds_selection=[
-            ticker for ticker in portfolio["tickers"] if ticker in bond
-        ],
-    )
+            selected_tickers=portfolio["tickers"],
+            max_share=portfolio["max_share"],
+            start_date=portfolio["start_date"],
+            end_date=portfolio["end_date"],
+            stocks_selection=[
+                ticker for ticker in portfolio["tickers"] if ticker in stocks
+            ],
+            indexes_selection=[
+                ticker for ticker in portfolio["tickers"] if ticker in index
+            ],
+            minerals_selection=[
+                ticker for ticker in portfolio["tickers"] if ticker in minerals
+            ],
+            etf_selection=[ticker for ticker in portfolio["tickers"] if ticker in etf],
+            crypto_selection=[
+                ticker for ticker in portfolio["tickers"] if ticker in crypto
+            ],
+            bonds_selection=[
+                ticker for ticker in portfolio["tickers"] if ticker in bond
+            ],
+        )
     st.session_state["last_selected_example"] = selected_example
-    
+
     col1, col2 = st.columns(2)
 
     with col1:
@@ -185,7 +211,7 @@ def page_dynamicPortfolio():
 
     with col2:
         if st.button("Reset All"):
-           reset_session_state()
+            reset_session_state()
 
     # --- User Interface ---
     st.markdown("**Choose your tickers from the categories below:**")
@@ -203,7 +229,15 @@ def page_dynamicPortfolio():
         step=0.05,
         max_value=1.0,
     )
-    
+
+    min_share = st.number_input(
+        label="Enter min share of an asset:",
+        min_value=0.0,
+        value=st.session_state["min_share"],
+        step=0.05,
+        max_value=max_share,
+    )
+
     rebalance_freq = st.number_input(
         label="Specify rebalance frequency (in days): Set to 0 for a static portfolio",
         min_value=0,
@@ -215,7 +249,7 @@ def page_dynamicPortfolio():
     start_date = st.date_input("Start Date:", format="DD/MM/YYYY", key="start_date")
     end_date = st.date_input("End Date:", format="DD/MM/YYYY", key="end_date")
 
-     # Multiple selection for each category
+    # Multiple selection for each category
     stock_tickers = st.multiselect(
         label="Stocks",
         options=stocks,
@@ -246,7 +280,7 @@ def page_dynamicPortfolio():
         options=bond,
         key="bonds_selection",
     )
-    
+
     # Merge all selected tickers
     selected_tickers = (
         stock_tickers
@@ -257,7 +291,7 @@ def page_dynamicPortfolio():
         + bond_tickers
     )
     st.session_state["selected_tickers"] = list(set(selected_tickers))
-        
+
     # Button to validate the selection
     if st.button("Validate Selection"):
         # Check if the user has made a selection
@@ -292,9 +326,11 @@ def page_dynamicPortfolio():
             optimal_weights = result.x
             optimal_sharpe_ratio = -result.fun * np.sqrt(252)
             sorted_assets, sorted_weights = utils.filter_portfolio(
-                optimal_weights, selected_tickers, threshold=0.005
+                optimal_weights, selected_tickers, threshold=min_share
             )
-            portfolio_sharpe_ratio = utils.sharpe_ratio_portfolio(ql_end_date, prices, sorted_assets, sorted_weights, risk_free_rate) * np.sqrt(252)
+            portfolio_sharpe_ratio = utils.sharpe_ratio_portfolio(
+                ql_end_date, prices, sorted_assets, sorted_weights, risk_free_rate
+            ) * np.sqrt(252)
             portfolio_values = utils.track_portfolio_value(
                 ql_end_date,
                 prices,
@@ -302,8 +338,19 @@ def page_dynamicPortfolio():
                 sorted_weights,
                 initial_capital=initial_capital,
             )
-            
-            portfolio_rebalanced_values,allocation_history, sharpe_ratios  =  utils.rebalance_portfolio(prices=prices,selected_tickers=sorted_assets, initial_capital=initial_capital, rebalance_freq=rebalance_freq, risk_free_rate=risk_free_rate,max_share=max_share, start_date=ql_start_date, end_date=ql_end_date )
+
+            portfolio_rebalanced_values, allocation_history, sharpe_ratios = (
+                utils.rebalance_portfolio(
+                    prices=prices,
+                    selected_tickers=sorted_assets,
+                    initial_capital=initial_capital,
+                    rebalance_freq=rebalance_freq,
+                    risk_free_rate=risk_free_rate,
+                    max_share=max_share,
+                    start_date=ql_start_date,
+                    end_date=ql_end_date,
+                )
+            )
             portfolio_values = portfolio_rebalanced_values
             summary_df = utils.get_stock_performance_table(
                 prices, sorted_assets, sorted_weights, ql_end_date
@@ -385,7 +432,9 @@ def page_dynamicPortfolio():
 
             # Display portfolio metrics
             st.markdown("### Portfolio Metrics")
-            st.write(f"**Sharpe Ratio (Optimal ratio at purchase):** {optimal_sharpe_ratio:.3f}")
+            st.write(
+                f"**Sharpe Ratio (Optimal ratio at purchase):** {optimal_sharpe_ratio:.3f}"
+            )
             st.write(f"**Sharpe Ratio (Current):** {portfolio_sharpe_ratio:.3f}")
             st.write(f"**All-Time High (ATH):** ${metrics['ATH']:.2f}")
             st.write(f"**All-Time Low (ATL):** ${metrics['ATL']:.2f}")
@@ -395,7 +444,7 @@ def page_dynamicPortfolio():
             # Calcul des métriques CAPM
 
             # Display the results
-            st.write(f"### CAPM Model Results")
+            st.write("### CAPM Model Results")
             st.write(f"- **Alpha (Risk-adjusted performance)**: {alpha:.4f}")
             st.write(f"- **Beta (Market sensitivity)**: {beta:.4f}")
             st.write("#### Implications:")
@@ -440,24 +489,29 @@ def page_dynamicPortfolio():
             st.warning("Please select at least one ticker before validating.")
 
     st.header("Notes on Portfolio Optimization")
-    st.write("""
+    st.write(
+        """
     **Working Assumptions:**
     - We assume no slippage, no taxes, no transaction fees, no liquidity constraints, no short selling, and no leverage.
     - These assumptions simplify the modeling process for a theoretical approach and does not fully reflect real-world scenarios.
-    """)
-    st.write("""
+    """
+    )
+    st.write(
+        """
     **Rebalancing Approach:**
-    - During rebalancing, we assume that all assets are completely sold and then repurchased based on the new weights. 
+    - During rebalancing, we assume that all assets are completely sold and then repurchased based on the new weights.
     - This is a simplification, as real-world portfolio adjustments would incur transaction fees and be influenced by liquidity constraints.
-    """)
-    st.write("""
+    """
+    )
+    st.write(
+        """
 **Dynamic Portfolio Observations:**
-- In dynamic portfolios, asset weights often exhibit abrupt shifts between zero and the maximum cap. 
-- This phenomenon arises due to the high sensitivity of the optimization process. 
+- In dynamic portfolios, asset weights often exhibit abrupt shifts between zero and the maximum cap.
+- This phenomenon arises due to the high sensitivity of the optimization process.
 - Notably, removing just a single data point from a large dataset can result in significant changes, with some assets losing nearly all their allocation.
 - A potential improvement could involve using a Kalman filter to update the weights more gradually, providing smoother transitions and reducing abrupt changes in allocations.
-""")
-
+"""
+    )
 
 
 # Launch the page

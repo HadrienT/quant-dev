@@ -66,7 +66,7 @@
 
 # resource "google_cloud_scheduler_job" "auto_shutdown_job" {
 #   name        = "auto-shutdown-scheduler"
-#   schedule    = "*/5 * * * *" 
+#   schedule    = "*/5 * * * *"
 #   description = "Check idle VM and trigger auto shutdown"
 
 #   http_target {

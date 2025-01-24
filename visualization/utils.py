@@ -1,6 +1,5 @@
 import os
 from typing import Any
-import datetime
 
 from dotenv import load_dotenv
 import matplotlib.pyplot as plt
@@ -178,6 +177,7 @@ def calculate_coint(stock_pair: tuple[str], data: pd.DataFrame) -> dict[str, flo
 def get_stock_tickers():
     return pd.read_csv("tickers.csv", header=None)[0].tolist()
 
+
 def load_data() -> pd.DataFrame:
     """
     Load financial data from BigQuery.
@@ -189,18 +189,19 @@ def load_data() -> pd.DataFrame:
 
     PROJECT_ID = "quant-dev-442615"
     DATASET_ID = "financial_data"
-    
+
     query = f"""
-    SELECT * 
+    SELECT *
     FROM `{PROJECT_ID}.{DATASET_ID}.sp500_data`
     WHERE Date > '2020-01-01'
     """
-    
+
     df = client.query(query).to_dataframe()
 
     df = df.drop_duplicates(subset=["Date", "Ticker"])
 
     return df.sort_values(by=["Date"])
+
 
 @st.cache_data
 def load_prices(special_filters: list[str] = None) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -216,16 +217,29 @@ def load_prices(special_filters: list[str] = None) -> tuple[pd.DataFrame, pd.Dat
     df = load_data()
     prices = df.pivot(index="Date", columns="Ticker", values="Close")
     prices = prices.infer_objects().interpolate(method="linear")
-    
-    columns_to_drop = ["ABNB", "AMTM", "CEG", "GEHC", "GEV", "KVUE", "SOLV", "SW", "VLTO", "TNX"]
-    
-    prices = prices.drop(columns=[col for col in columns_to_drop if col in prices.columns], errors="ignore")
+
+    columns_to_drop = [
+        "ABNB",
+        "AMTM",
+        "CEG",
+        "GEHC",
+        "GEV",
+        "KVUE",
+        "SOLV",
+        "SW",
+        "VLTO",
+        "TNX",
+    ]
+
+    prices = prices.drop(
+        columns=[col for col in columns_to_drop if col in prices.columns],
+        errors="ignore",
+    )
     prices.index = pd.to_datetime(prices.index).tz_localize("UTC")
-    
+
     if special_filters is not None:
         return df, prices[special_filters]
     return df, prices.dropna()
-
 
 
 @st.cache_data
@@ -306,7 +320,7 @@ def is_business_day(date) -> bool:
     return calendar.isBusinessDay(ql_date)
 
 
-def portfolio_return(weights:np.array, mean_returns:np.ndarray) -> float:
+def portfolio_return(weights: np.array, mean_returns: np.ndarray) -> float:
     """
     Calculate the expected return of a portfolio.
 
@@ -320,7 +334,7 @@ def portfolio_return(weights:np.array, mean_returns:np.ndarray) -> float:
     return np.sum(mean_returns * weights)
 
 
-def portfolio_volatility(weights:np.array, cov_matrix:np.ndarray) -> float:
+def portfolio_volatility(weights: np.array, cov_matrix: np.ndarray) -> float:
     """
     Calculate portfolio volatility.
 
@@ -334,7 +348,12 @@ def portfolio_volatility(weights:np.array, cov_matrix:np.ndarray) -> float:
     return np.sqrt(np.dot(weights.T, np.dot(cov_matrix, weights)))
 
 
-def negative_sharpe_ratio(weights:np.array, mean_returns:np.ndarray, cov_matrix:np.ndarray, risk_free_rate:float) -> float:
+def negative_sharpe_ratio(
+    weights: np.array,
+    mean_returns: np.ndarray,
+    cov_matrix: np.ndarray,
+    risk_free_rate: float,
+) -> float:
     """
     Calculate the negative Sharpe ratio of a portfolio.
 
@@ -502,7 +521,7 @@ def track_portfolio_value(
     if selling_date is not None:
         selling_date = pd.Timestamp(selling_date.to_date()).tz_localize("UTC")
         filtered_prices = filtered_prices.loc[:selling_date]
-        
+
     initial_allocations = sorted_weights * initial_capital
     initial_prices = filtered_prices[sorted_assets].loc[purchase_date]
     shares = initial_allocations / initial_prices
@@ -536,7 +555,7 @@ def sharpe_ratio_portfolio(
     if selling_date is not None:
         selling_date = pd.Timestamp(selling_date.to_date()).tz_localize("UTC")
         filtered_prices = filtered_prices.loc[:selling_date]
-    
+
     returns = get_returns(filtered_prices)
     mean_returns = returns.mean()
     cov_matrix = returns.cov()
@@ -545,7 +564,7 @@ def sharpe_ratio_portfolio(
         weights=np.array(sorted_weights),
         mean_returns=mean_returns,
         cov_matrix=cov_matrix,
-        risk_free_rate=risk_free_rate / 252
+        risk_free_rate=risk_free_rate / 252,
     )
     return sharpe_ratio
 
@@ -612,13 +631,13 @@ def calculate_implied_volatility(
     Returns:
     --------
     float
-        The implied volatility of the option. If the input parameters are invalid 
-        (e.g., non-positive market price, strike, or expiry), or if the implied 
+        The implied volatility of the option. If the input parameters are invalid
+        (e.g., non-positive market price, strike, or expiry), or if the implied
         volatility cannot be calculated, returns np.nan.
 
     Notes:
     ------
-    This function uses QuantLib to model the European option and employs the 
+    This function uses QuantLib to model the European option and employs the
     Black-Scholes-Merton framework for calculating implied volatility.
     """
     if market_price <= 0 or strike <= 0 or expiry <= 0:
@@ -690,7 +709,7 @@ def rebalance_portfolio(
         end_date (datetime.date, optional): End date of the investment. Defaults to the last date in the data.
 
     Returns:
-        tuple[pd.Series, pd.DataFrame, pd.Series]: 
+        tuple[pd.Series, pd.DataFrame, pd.Series]:
         - Time series of portfolio values.
         - Table of allocations over time.
         - Time series of Sharpe Ratios.
@@ -705,7 +724,7 @@ def rebalance_portfolio(
 
     # Filter prices for dates and selected assets
     filtered_prices = prices[selected_tickers].loc[start_date:end_date]
-    
+
     returns_to_date = get_returns(prices[selected_tickers]).loc[start_date:end_date]
     # Handle the no-rebalancing case
     if rebalance_freq == 0:
@@ -719,10 +738,10 @@ def rebalance_portfolio(
         )
         optimal_weights = result.x
         print(f"Optimal Weights: {optimal_weights}")
-        
+
         sorted_assets, sorted_weights = filter_portfolio(
-                optimal_weights, selected_tickers, threshold=0.005
-            )
+            optimal_weights, selected_tickers, threshold=0.005
+        )
         print(f"Sorted Assets: {sorted_assets}")
         # Track the portfolio value over time
         portfolio_values = track_portfolio_value(
@@ -735,20 +754,31 @@ def rebalance_portfolio(
         )
 
         # Allocation history
-        allocation_history = [{
-            "Date": start_date,
-            "Portfolio Value": initial_capital,
-            **{ticker: weight for ticker, weight in zip(selected_tickers, optimal_weights)}
-        }]
+        allocation_history = [
+            {
+                "Date": start_date,
+                "Portfolio Value": initial_capital,
+                **{
+                    ticker: weight
+                    for ticker, weight in zip(selected_tickers, optimal_weights)
+                },
+            }
+        ]
 
         sharpe_ratio = -result.fun * np.sqrt(252)
         sharpe_ratios = pd.Series({start_date: sharpe_ratio})
 
-        return portfolio_values, pd.DataFrame(allocation_history).set_index("Date"), sharpe_ratios
+        return (
+            portfolio_values,
+            pd.DataFrame(allocation_history).set_index("Date"),
+            sharpe_ratios,
+        )
 
     # Find all business days
     business_days = [date for date in returns_to_date.index if is_business_day(date)]
-    rebalance_dates = business_days[::rebalance_freq]  # Select every rebalance_freq-th business day
+    rebalance_dates = business_days[
+        ::rebalance_freq
+    ]  # Select every rebalance_freq-th business day
 
     # Initialization
     portfolio_values = [initial_capital]  # Initial capital as the first portfolio value
@@ -760,7 +790,9 @@ def rebalance_portfolio(
     for i, current_date in enumerate(filtered_prices.index):
         # Rebalance at the specified frequency
         if current_date in rebalance_dates or i == 0:
-            returns_to_date = get_returns(prices[selected_tickers]).loc[start_date:current_date]
+            returns_to_date = get_returns(prices[selected_tickers]).loc[
+                start_date:current_date
+            ]
 
             if returns_to_date.empty:
                 print("WARNING: Returns to date is empty. Skipping rebalancing.")
@@ -770,36 +802,57 @@ def rebalance_portfolio(
                 returns=returns_to_date,
                 risk_free_rate=risk_free_rate,
                 max_share=max_share,
-                start_date=ql.Date(last_rebalance_date.day, last_rebalance_date.month, last_rebalance_date.year),
-                end_date=ql.Date(current_date.day, current_date.month, current_date.year),
+                start_date=ql.Date(
+                    last_rebalance_date.day,
+                    last_rebalance_date.month,
+                    last_rebalance_date.year,
+                ),
+                end_date=ql.Date(
+                    current_date.day, current_date.month, current_date.year
+                ),
             )
             optimal_weights = result.x
-            allocation_history.append({
-                "Date": current_date,
-                "Portfolio Value": portfolio_values[-1],
-                **{ticker: weight for ticker, weight in zip(selected_tickers, optimal_weights)}
-            })
+            allocation_history.append(
+                {
+                    "Date": current_date,
+                    "Portfolio Value": portfolio_values[-1],
+                    **{
+                        ticker: weight
+                        for ticker, weight in zip(selected_tickers, optimal_weights)
+                    },
+                }
+            )
             sharpe_ratios.loc[current_date] = -result.fun * np.sqrt(252)
 
             sorted_assets, sorted_weights = filter_portfolio(
                 optimal_weights, selected_tickers, threshold=0.005
             )
             # Update the portfolio value using `track_portfolio_value`
-            ql_last_rebalance_date = ql.Date(last_rebalance_date.day, last_rebalance_date.month, last_rebalance_date.year)
-            ql_current_date = ql.Date(current_date.day, current_date.month, current_date.year)
+            ql_last_rebalance_date = ql.Date(
+                last_rebalance_date.day,
+                last_rebalance_date.month,
+                last_rebalance_date.year,
+            )
+            ql_current_date = ql.Date(
+                current_date.day, current_date.month, current_date.year
+            )
 
             tracked_values = track_portfolio_value(
                 purchase_date=ql_last_rebalance_date,
                 prices=prices,
                 sorted_assets=sorted_assets,
                 sorted_weights=sorted_weights,
-                initial_capital=portfolio_values[-1],  # Use the latest portfolio value as the starting capital
-                selling_date=ql_current_date
+                initial_capital=portfolio_values[
+                    -1
+                ],  # Use the latest portfolio value as the starting capital
+                selling_date=ql_current_date,
             )
 
             # Append the tracked values and their corresponding dates
             portfolio_values.extend(tracked_values[1:])
-            portfolio_dates.extend(filtered_prices.loc[last_rebalance_date:current_date].index[1:])
+            portfolio_dates.extend(
+                filtered_prices.loc[last_rebalance_date:current_date].index[1:]
+            )
 
             # Update the last rebalance date
             last_rebalance_date = current_date

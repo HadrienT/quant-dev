@@ -12,9 +12,9 @@ from google.cloud import bigquery
 #     sp500_table = table[0]  # The main table is the first one
 #     return sp500_table["Symbol"].tolist()
 
+
 def get_sp500_tickers():
     return pd.read_csv("tickers.csv", header=None)[0].tolist()
-
 
 
 # Download previous day's data
@@ -130,7 +130,7 @@ def merge_into_main_table(client, temp_table_id, main_table_id):
     USING `{temp_table_id}` AS temp
     ON main.Date = temp.Date AND main.Ticker = temp.Ticker
     WHEN NOT MATCHED THEN
-      INSERT (Date, Ticker, Open, High, Low, Close, Volume) 
+      INSERT (Date, Ticker, Open, High, Low, Close, Volume)
       VALUES (temp.Date, temp.Ticker, temp.Open, temp.High, temp.Low, temp.Close, temp.Volume)
     """
     job = client.query(query)
