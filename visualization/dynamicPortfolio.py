@@ -102,7 +102,7 @@ def page_dynamicPortfolio():
     # --- List of tickers ---
     
     top_stocks = sorted(["AAPL", "MSFT", "GOOGL", "AMZN", "TSLA", "BRK-B", "NVDA", "META"])
-    all_stocks = get_stock_tickers()
+    all_stocks = utils.get_stock_tickers()
     stocks = top_stocks + [stock for stock in all_stocks if stock not in top_stocks]
     index = sorted(["^GSPC", "^DJI", "^IXIC", "^FTSE", "^GDAXI", "^FCHI", "^N225", "URTH"])
     minerals = sorted(["GC=F", "SI=F", "CL=F", "BZ=F", "HG=F"])

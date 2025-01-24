@@ -6,6 +6,7 @@ import QuantLib as ql
 import numpy as np
 from scipy.interpolate import griddata
 import utils
+import pandas as pd
 
 # Get the risk-free rate
 risk_free_rate = utils.get_risk_free_rate()
@@ -15,7 +16,9 @@ def page_IV():
     st.title("Implied Volatility")
 
     # List of tickers
-    stocks = sorted(["AAPL", "MSFT", "GOOGL", "AMZN", "TSLA", "BRK-B", "NVDA", "META"])
+    top_stocks = sorted(["AAPL", "MSFT", "GOOGL", "AMZN", "TSLA", "BRK-B", "NVDA", "META"])
+    all_stocks = utils.get_stock_tickers()
+    stocks = top_stocks + [stock for stock in all_stocks if stock not in top_stocks]
 
     # User interface
     st.markdown("**Choose your tickers and expiration date below:**")

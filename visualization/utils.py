@@ -173,6 +173,11 @@ def calculate_coint(stock_pair: tuple[str], data: pd.DataFrame) -> dict[str, flo
 
 #     return combined_df
 
+
+@st.cache_data
+def get_stock_tickers():
+    return pd.read_csv("tickers.csv", header=None)[0].tolist()
+
 def load_data() -> pd.DataFrame:
     """
     Load financial data from BigQuery.
