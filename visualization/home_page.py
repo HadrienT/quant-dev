@@ -25,6 +25,7 @@ def page_home():
 
         3. **🔗 Pair Trading**
            - Backtest pair trading strategies on **preselected pairs of cointegrated stocks** (They were determined using data from 2000 to now).
+           - **Development in progress**
 
         4. **🚀 Coming Soon: Options in Portfolio Optimization**
            - Explore how to optimize a portfolio with **options**
