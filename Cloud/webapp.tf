@@ -60,22 +60,23 @@ resource "google_cloud_run_v2_service" "service" {
 }
 
 
-resource "google_cloud_run_service_iam_policy" "no_auth" {
-  location = google_cloud_run_v2_service.service.location
-  project  = google_cloud_run_v2_service.service.project
-  service  = google_cloud_run_v2_service.service.name
+# resource "google_cloud_run_service_iam_policy" "no_auth" {
+#   location = google_cloud_run_v2_service.service.location
+#   project  = google_cloud_run_v2_service.service.project
+#   service  = google_cloud_run_v2_service.service.name
 
-  policy_data = data.google_iam_policy.no_auth_policy.policy_data
-}
+#   policy_data = data.google_iam_policy.no_auth_policy.policy_data
+# }
 
-data "google_iam_policy" "no_auth_policy" {
-  binding {
-    role = "roles/run.invoker"
-    members = [
-      "allUsers"
-    ]
-  }
-}
+
+# data "google_iam_policy" "no_auth_policy" {
+#   binding {
+#     role = "roles/run.invoker"
+#     members = [
+#       "allUsers"
+#     ]
+#   }
+# }
 
 
 resource "google_cloud_run_domain_mapping" "portfolio_domain" {
@@ -90,8 +91,41 @@ resource "google_cloud_run_domain_mapping" "portfolio_domain" {
   }
 }
 
-# resource "google_managed_ssl_certificate" "ssl_certificate" {
-#   name    = "ssl-${var.domain_name}"
-#   domains = [var.domain_name]
-#   project = var.project_id
+
+# data "google_iam_policy" "lb_only_policy" {
+#   binding {
+#     role = "roles/run.invoker"
+#     members = [
+#       "serviceAccount:${var.project_number}-compute@developer.gserviceaccount.com" # Load Balancer Service Account
+#     ]
+#   }
 # }
+
+
+# resource "google_cloud_run_service_iam_policy" "lb_only" {
+#   location = google_cloud_run_v2_service.service.location
+#   project  = google_cloud_run_v2_service.service.project
+#   service  = google_cloud_run_v2_service.service.name
+
+#   policy_data = data.google_iam_policy.lb_only_policy.policy_data
+# }
+
+resource "google_cloud_run_service_iam_binding" "lb_invoker" {
+  location = google_cloud_run_v2_service.service.location
+  project  = google_cloud_run_v2_service.service.project
+  service  = google_cloud_run_v2_service.service.name
+  role     = "roles/run.invoker"
+
+  members = [
+    "serviceAccount:${var.project_number}-compute@developer.gserviceaccount.com"
+  ]
+}
+
+
+resource "google_cloud_run_service_iam_member" "allow_all_users" {
+  location = google_cloud_run_v2_service.service.location
+  project  = google_cloud_run_v2_service.service.project
+  service  = google_cloud_run_v2_service.service.name
+  role     = "roles/run.invoker"
+  member   = "allUsers"
+}
