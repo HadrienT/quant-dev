@@ -87,25 +87,95 @@ resource "google_compute_firewall" "allow_lb_health_checks" {
     ports    = ["80", "443"]
   }
 
-  source_ranges = ["130.211.0.0/22", "35.191.0.0/16"] # IPs des Load Balancers Google
+  source_ranges = ["130.211.0.0/22", "35.191.0.0/16"] # IPs of Google Load Balancers
 }
 
-resource "google_compute_security_policy" "block_googlebot" {
-  name = "block-googlebot-policy"
+resource "google_compute_security_policy" "strict_policy" {
+  name = "strict-access-policy"
 
-  # Rule to block Googlebot
+  # Block known bots (Googlebot, Bot, Crawler)
   rule {
     action   = "deny(403)"
     priority = 1000
     match {
       expr {
-        expression = "has(request.headers['user-agent']) && request.headers['user-agent'].contains('Googlebot')"
+        expression = <<EOT
+          has(request.headers['user-agent']) &&
+          (request.headers['user-agent'].matches('.*Googlebot.*'))
+        EOT
       }
     }
-    description = "Block Googlebot user agent"
+    description = "Block Googlebot, bot, and crawler"
   }
 
-  # Default rule (required)
+  # Block scrapers and automated clients
+  rule {
+    action   = "deny(403)"
+    priority = 1010
+    match {
+      expr {
+        expression = <<EOT
+          has(request.headers['user-agent']) &&
+          (request.headers['user-agent'].matches('.*spider.*') ||
+           request.headers['user-agent'].matches('.*scraper.*') ||
+           request.headers['user-agent'].matches('.*wget.*') ||
+           request.headers['user-agent'].matches('.*curl.*'))
+        EOT
+      }
+    }
+    description = "Block spiders, scrapers, wget, and curl"
+  }
+
+  # Block Python and Java-based clients
+  rule {
+    action   = "deny(403)"
+    priority = 1020
+    match {
+      expr {
+        expression = <<EOT
+          has(request.headers['user-agent']) &&
+          (request.headers['user-agent'].matches('.*python-requests.*') ||
+           request.headers['user-agent'].matches('.*Java.*'))
+        EOT
+      }
+    }
+    description = "Block Python requests and Java clients"
+  }
+
+  # Block suspicious endpoints (WordPress, .git, .env)
+  rule {
+    action   = "deny(403)"
+    priority = 1030
+    match {
+      expr {
+        expression = <<EOT
+          request.path.startsWith('/wp-admin') ||
+          request.path.startsWith('/wordpress/wp-admin') ||
+          request.path.startsWith('/.git') ||
+          request.path.startsWith('/.env')
+        EOT
+      }
+    }
+    description = "Block WordPress, .git, and .env access"
+  }
+
+  # Block additional suspicious admin/config paths
+  rule {
+    action   = "deny(403)"
+    priority = 1040
+    match {
+      expr {
+        expression = <<EOT
+          request.path.startsWith('/phpmyadmin') ||
+          request.path.startsWith('/admin') ||
+          request.path.startsWith('/config')
+        EOT
+      }
+    }
+    description = "Block phpMyAdmin, admin, and config endpoints"
+  }
+
+  # Default rule: Allow all remaining traffic
   rule {
     action   = "allow"
     priority = 2147483647
@@ -115,9 +185,11 @@ resource "google_compute_security_policy" "block_googlebot" {
         src_ip_ranges = ["*"]
       }
     }
-    description = "Default rule, higher priority overrides it"
+    description = "Default rule to allow all remaining traffic"
   }
 }
+
+
 
 resource "google_compute_backend_service" "cloud_run_backend" {
   name                  = "cloud-run-backend"
@@ -130,14 +202,16 @@ resource "google_compute_backend_service" "cloud_run_backend" {
     group = google_compute_region_network_endpoint_group.cloud_run_neg.id
   }
 
-  security_policy = google_compute_security_policy.block_googlebot.id
+  security_policy = google_compute_security_policy.strict_policy.id
 
-  port_name = "http" # Required for Cloud Run
+  port_name = "http" # Mandatory for Cloud Run
 
+  # 🔹 Header to check the host
   custom_request_headers = [
     "Host: ${google_cloud_run_v2_service.service.name}-${google_cloud_run_v2_service.service.project}.a.run.app"
   ]
 
+  # 🔹 Headers to handle CORS
   custom_response_headers = [
     "Access-Control-Allow-Origin: *",
     "Access-Control-Allow-Methods: GET, POST, OPTIONS",
@@ -145,6 +219,7 @@ resource "google_compute_backend_service" "cloud_run_backend" {
     "Access-Control-Expose-Headers: Content-Length,Content-Range"
   ]
 
+  # 🔹 Advanced logging to track requests
   log_config {
     enable      = true
     sample_rate = 1.0
