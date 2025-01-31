@@ -1,4 +1,15 @@
+[server]
+port = 8080
+address = "0.0.0.0"
+enableCORS = false
+enableXsrfProtection = false
+
 [theme]
 base = "dark"
+
 [browser]
 gatherUsageStats = false
+
+[client]
+showErrorDetails = true
+toolbarMode = "minimal"
