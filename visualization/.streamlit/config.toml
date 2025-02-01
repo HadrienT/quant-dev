@@ -3,6 +3,9 @@ port = 8080
 address = "0.0.0.0"
 enableCORS = false
 enableXsrfProtection = false
+runOnSave = false
+enableWebsocketCompression = false
+headless = true                    # Headless mod for prod
 
 [theme]
 base = "dark"
