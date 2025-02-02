@@ -5,34 +5,33 @@ resource "google_artifact_registry_repository" "repository" {
   description   = "Artifact Registry for Cloud Run"
 }
 
-# resource "google_cloudbuild_trigger" "build_trigger" {
-#   name            = "cloud-run-build-trigger"
-#   filename        = "cloudbuild.yaml"
-#   service_account = var.builder_service_account
-#   github {
-#     owner = var.github_owner
-#     name  = var.github_repo_name
+resource "google_cloudbuild_trigger" "build_trigger" {
+  name            = "cloud-run-build-trigger"
+  filename        = "Cloud/cloudbuild.yaml"
+  location        = "global"
+  service_account = "projects/${var.project_id}/serviceAccounts/${var.builder_service_account}"
+  github {
+    owner = var.github_owner
+    name  = var.github_repo_name
 
-#     push {
-#       branch = "^main$"
-#     }
-#   }
+    push {
+      branch = "^main$"
+    }
+  }
 
-#   included_files = [
-#     "visualization/**",
-#   ]
-#   substitutions = {
-#     _SERVICE_NAME = var.service_name
-#     _REGION       = var.region
-#     _REPOSITORY   = var.repository_name
-#     _PROJECT_ID   = var.project_id
-#   }
-# }
+  substitutions = {
+    _SERVICE_NAME = var.service_name
+    _REGION       = var.region
+    _REPOSITORY   = var.repository_name
+    _PROJECT_ID   = var.project_id
+  }
+}
 
 resource "google_cloud_run_v2_service" "service" {
   name                = var.service_name
   location            = var.region
   deletion_protection = false
+  ingress             = "INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER"
 
   template {
     containers {
@@ -48,6 +47,10 @@ resource "google_cloud_run_v2_service" "service" {
           cpu    = "1"
         }
       }
+    }
+    vpc_access {
+      connector = google_vpc_access_connector.cloudrun_connector.id
+      egress    = "PRIVATE_RANGES_ONLY"
     }
 
     scaling {
@@ -110,6 +113,7 @@ resource "google_cloud_run_domain_mapping" "portfolio_domain" {
 #   policy_data = data.google_iam_policy.lb_only_policy.policy_data
 # }
 
+
 resource "google_cloud_run_service_iam_binding" "lb_invoker" {
   location = google_cloud_run_v2_service.service.location
   project  = google_cloud_run_v2_service.service.project
@@ -122,10 +126,10 @@ resource "google_cloud_run_service_iam_binding" "lb_invoker" {
 }
 
 
-resource "google_cloud_run_service_iam_member" "allow_all_users" {
-  location = google_cloud_run_v2_service.service.location
-  project  = google_cloud_run_v2_service.service.project
-  service  = google_cloud_run_v2_service.service.name
-  role     = "roles/run.invoker"
-  member   = "allUsers"
-}
+# resource "google_cloud_run_service_iam_member" "allow_all_users" {
+#   location = google_cloud_run_v2_service.service.location
+#   project  = google_cloud_run_v2_service.service.project
+#   service  = google_cloud_run_v2_service.service.name
+#   role     = "roles/run.invoker"
+#   member   = "allUsers"
+# }
