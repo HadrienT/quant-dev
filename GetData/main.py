@@ -13,8 +13,8 @@ from google.cloud import bigquery
 #     return sp500_table["Symbol"].tolist()
 
 
-def get_sp500_tickers():
-    return pd.read_csv("tickers.csv", header=None)[0].tolist()
+def get_sp500_tickers(file_path: str = "tickers.csv") -> list:
+    return pd.read_csv(file_path, header=None)[0].tolist()
 
 
 # Download previous day's data

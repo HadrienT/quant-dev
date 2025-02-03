@@ -5,7 +5,7 @@ def page_architecture():
     st.title("System Architecture")
 
     # Provide the path to your PNG image
-    image_path = "./assets/quant-dev 2.svg"
+    image_path = "./assets/quant-dev 3.svg"
 
     try:
         # Display the image in Streamlit
