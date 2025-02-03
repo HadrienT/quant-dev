@@ -7,9 +7,6 @@ COPY . ./
 
 RUN pip install --no-cache-dir -r requirements.txt
 
-RUN mkdir -p /app/.streamlit && \
-    cp ./.streamlit/config.toml /app/.streamlit/config.toml
-
 ENV STREAMLIT_CONFIG_FILE=/app/.streamlit/config.toml
 EXPOSE 8080
 
