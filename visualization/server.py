@@ -5,7 +5,11 @@ from starlette.middleware.base import BaseHTTPMiddleware
 class MonitoringMiddleware(BaseHTTPMiddleware):
     def __init__(self, app: FastAPI):
         super().__init__(app)
-        self.excluded_paths = ["/st_core/health", "/_stcore/health", "/_stcore/stream"]
+        self.excluded_paths = [
+            "/_stcore/host-config",
+            "/_stcore/health",
+            "/_stcore/stream",
+        ]
 
     async def dispatch(self, request, call_next):
         path = request.url.path
