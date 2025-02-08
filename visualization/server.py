@@ -1,11 +1,13 @@
 from fastapi import FastAPI
 from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import Response
 
 
 class MonitoringMiddleware(BaseHTTPMiddleware):
     def __init__(self, app: FastAPI):
         super().__init__(app)
         self.excluded_paths = [
+            "/_stcore/",
             "/_stcore/host-config",
             "/_stcore/health",
             "/_stcore/stream",
@@ -13,10 +15,16 @@ class MonitoringMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request, call_next):
         path = request.url.path
-        if path in self.excluded_paths:
-            from starlette.responses import Response
 
-            return Response(status_code=200)
+        should_block = any(
+            path.startswith(excluded) for excluded in self.excluded_paths
+        )
+
+        if should_block:
+
+            return Response(
+                status_code=204, headers={"X-Request-Blocked": "true"}  # No Content
+            )
 
         response = await call_next(request)
         return response

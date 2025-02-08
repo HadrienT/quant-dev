@@ -25,7 +25,7 @@ def download_previous_day_data(tickers):
     # start_date = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
     # end_date = (datetime.now() - timedelta(days=0)).strftime("%Y-%m-%d")
 
-    current_date = datetime.now() - timedelta(days=10)
+    current_date = datetime.now() - timedelta(days=1)
     while not pd.Timestamp(current_date).isoweekday() in range(
         1, 6
     ):  # Monday (1) to Friday (5)
@@ -153,9 +153,9 @@ def fill_table():
 
     # Step 3: Load into BigQuery
     print("Loading data into BigQuery...")
-    PROJECT_ID = "quant-dev-442615"  # Replace with your project ID
-    DATASET_ID = "financial_data"  # Replace with your dataset name
-    TABLE_ID = "sp500_data"  # Table name
+    PROJECT_ID = "quant-dev-442615"
+    DATASET_ID = "financial_data"
+    TABLE_ID = "sp500_data"
 
     # Load data
     load_data_to_bigquery(

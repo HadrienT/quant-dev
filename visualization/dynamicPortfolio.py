@@ -106,7 +106,7 @@ def reset_session_state():
 def page_dynamicPortfolio():
     global init
     st.text(
-        "Make a portfolio on the fly using the selected tickers from various asset classes. The date range is to select the period for the optimization. We consider a one time investment at the end of this period."
+        "Create a portfolio on the fly using selected tickers from various asset classes. The date range determines the period for optimization. The investment is considered to begin at the end of this period."
     )
     _, prices = utils.load_prices()
     risk_free_rate = utils.get_risk_free_rate()
