@@ -48,7 +48,8 @@ def test_multiindex_structure():
     # Check the levels of the MultiIndex
     expected_levels = [["AAPL", "MSFT"], ["Open", "High", "Low", "Close", "Volume"]]
     assert [
-        list(df.columns.get_level_values(i).unique()) for i in range(2)
+        list(df.sort_index(axis=0).columns.get_level_values(i).unique())
+        for i in range(2)
     ] == expected_levels, "MultiIndex levels are incorrect."
 
     # Verify the names of the MultiIndex levels
