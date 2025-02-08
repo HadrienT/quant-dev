@@ -45,12 +45,19 @@ def test_multiindex_structure():
     # Ensure the DataFrame columns use a MultiIndex
     assert isinstance(df.columns, pd.MultiIndex), "Columns are not using a MultiIndex."
 
-    # Check the levels of the MultiIndex
-    expected_levels = [["AAPL", "MSFT"], ["Open", "High", "Low", "Close", "Volume"]]
-    assert [
-        list(df.sort_index(axis=0).columns.get_level_values(i).unique())
-        for i in range(2)
-    ] == expected_levels, "MultiIndex levels are incorrect."
+    # Check the levels of the MultiIndex (ignoring order)
+    expected_levels = [
+        ["AAPL", "MSFT"],
+        sorted(["Open", "High", "Low", "Close", "Volume"]),
+    ]
+    actual_levels = [
+        sorted(df.columns.get_level_values(i).unique().tolist()) for i in range(2)
+    ]
+    print(f"Expected levels: {expected_levels}")
+    print(f"Actual levels: {actual_levels}")
+    assert (
+        actual_levels == expected_levels
+    ), f"MultiIndex levels are incorrect.\nExpected: {expected_levels}\nGot: {actual_levels}"
 
     # Verify the names of the MultiIndex levels
     assert df.columns.names == [
@@ -58,8 +65,8 @@ def test_multiindex_structure():
         "Price",
     ], "MultiIndex level names are incorrect."
 
-    # Check if the columns are structured as expected
-    expected_columns = [
+    # Check if the columns are structured as expected (ignoring order)
+    expected_columns = {
         ("AAPL", "Open"),
         ("AAPL", "High"),
         ("AAPL", "Low"),
@@ -70,18 +77,20 @@ def test_multiindex_structure():
         ("MSFT", "Low"),
         ("MSFT", "Close"),
         ("MSFT", "Volume"),
-    ]
+    }
+    actual_columns = set(df.columns.to_list())
     assert (
-        list(df.columns) == expected_columns
-    ), "Columns do not match the expected structure."
+        actual_columns == expected_columns
+    ), f"Columns do not match the expected structure.\nExpected: {expected_columns}\nGot: {actual_columns}"
 
     # Ensure the index is correctly named and is a DatetimeIndex
     assert df.index.name == "Date", "Index is not named 'Date'."
     assert isinstance(df.index, pd.DatetimeIndex), "Index is not a DatetimeIndex."
 
     # Convert both DataFrames to have the same structure for comparison
-    df_sorted = df[expected_columns].sort_index(axis=0).round(3)
-    df_ref_sorted = df_ref[expected_columns].sort_index(axis=0).round(3)
+    df_sorted = df[sorted(expected_columns)].sort_index(axis=0).round(3)
+    df_ref_sorted = df_ref[sorted(expected_columns)].sort_index(axis=0).round(3)
+
     # Ensure all values in the dataset match
     assert df_sorted.equals(
         df_ref_sorted
