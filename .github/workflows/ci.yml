@@ -52,7 +52,13 @@ jobs:
       # Step 6: Run tests for GetData
       - name: Run tests for GetData
         working-directory: ./GetData
-        run: pytest --disable-warnings || echo "No tests found, skipping."
+        run: |
+          if [ -f "test_*.py" ] || [ -d "tests" ]; then
+            pytest --disable-warnings
+          else
+            echo "No tests found in GetData directory"
+            exit 0
+          fi
 
   test_visualization:
     runs-on: ubuntu-latest
@@ -97,8 +103,13 @@ jobs:
       # Step 6: Run tests for Visualization
       - name: Run tests for Visualization
         working-directory: ./visualization
-        run: pytest --disable-warnings || echo "No tests found, skipping."
-
+        run: |
+          if [ -f "test_*.py" ] || [ -d "tests" ]; then
+            pytest --disable-warnings
+          else
+            echo "No tests found in Visualization directory"
+            exit 0
+          fi
   linting:
     runs-on: ubuntu-latest
 
