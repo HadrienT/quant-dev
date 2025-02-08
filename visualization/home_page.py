@@ -52,6 +52,6 @@ def page_home():
     st.markdown(
         """
         If you have any feedback, feature requests, or just want to say hi, feel free to reach out!
-        You can find my information in the **About*** tab.
+        You can find my information in the **About** tab.
         """
     )
