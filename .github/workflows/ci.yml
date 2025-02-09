@@ -61,7 +61,7 @@ jobs:
       - name: Run tests for GetData
         working-directory: ./GetData
         run: |
-          if [ -f "test_*.py" ] || [ -d "tests" ]; then
+          if find . -type f -name "test_*.py" | grep -q .; then
             pytest --disable-warnings
           else
             echo "No tests found in GetData directory"
