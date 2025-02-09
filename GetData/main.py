@@ -112,23 +112,51 @@ def load_to_temp_table(client, df, temp_table_id):
     """
     Loads data into a temporary BigQuery table.
     """
+    data = df.drop_duplicates(subset=["Date", "Ticker"])
     job_config = bigquery.LoadJobConfig(
         write_disposition="WRITE_TRUNCATE"  # Overwrites existing data
     )
-    job = client.load_table_from_dataframe(df, temp_table_id, job_config=job_config)
+    job = client.load_table_from_dataframe(data, temp_table_id, job_config=job_config)
     job.result()
     print(f"Data loaded into temporary table {temp_table_id}")
+
+
+# Merge data with the main table
+# def merge_into_main_table(client, temp_table_id, main_table_id):
+#     """
+#     Merges data from the temporary table into the main table.
+#     """
+#     query = f"""
+#     MERGE `{main_table_id}` AS main
+#     USING `{temp_table_id}` AS temp
+#     ON main.Date = temp.Date AND main.Ticker = temp.Ticker
+#     WHEN NOT MATCHED THEN
+#       INSERT (Date, Ticker, Open, High, Low, Close, Volume)
+#       VALUES (temp.Date, temp.Ticker, temp.Open, temp.High, temp.Low, temp.Close, temp.Volume)
+#     """
+#     job = client.query(query)
+#     job.result()
+#     print(f"Data merged into main table {main_table_id}")
 
 
 # Merge data with the main table
 def merge_into_main_table(client, temp_table_id, main_table_id):
     """
     Merges data from the temporary table into the main table.
+    If a line with the same couple (Date, Ticker) already exists,
+    it is updated with the new values.
     """
     query = f"""
     MERGE `{main_table_id}` AS main
     USING `{temp_table_id}` AS temp
     ON main.Date = temp.Date AND main.Ticker = temp.Ticker
+    WHEN MATCHED THEN
+      UPDATE SET
+        Open = temp.Open,
+        High = temp.High,
+        Low = temp.Low,
+        Close = temp.Close,
+        Volume = temp.Volume
     WHEN NOT MATCHED THEN
       INSERT (Date, Ticker, Open, High, Low, Close, Volume)
       VALUES (temp.Date, temp.Ticker, temp.Open, temp.High, temp.Low, temp.Close, temp.Volume)
