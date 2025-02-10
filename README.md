@@ -37,7 +37,7 @@ Below is the cloud architecture diagram for this project:
 Clone the repository:
 
 ```bash
-git clone https://github.com/yourusername/quant-dev.git
+git clone https://github.com/HadrienT/quant-dev.git
 cd quant-dev
 ```
 
