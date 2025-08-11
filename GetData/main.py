@@ -12,9 +12,9 @@ from google.cloud import bigquery
 #     sp500_table = table[0]  # The main table is the first one
 #     return sp500_table["Symbol"].tolist()
 
+
 def get_sp500_tickers():
     return pd.read_csv("tickers.csv", header=None)[0].tolist()
-
 
 
 # Download previous day's data
@@ -57,7 +57,6 @@ def download_previous_day_data(tickers):
         "Volume",
     ]
     return data[columns]
-    return data[columns]
 
 
 # Download data for all tickers
@@ -77,7 +76,6 @@ def download_sp500_data(tickers, start_date="2000-01-01", end_date=None):
 
     data = data.stack(level=0, future_stack=True).reset_index()  # Make tickers a column
     columns = [
-    columns = [
         "Date",
         "Ticker",
         "Open",
@@ -86,7 +84,6 @@ def download_sp500_data(tickers, start_date="2000-01-01", end_date=None):
         "Close",
         "Volume",
     ]
-    return data[columns]
     return data[columns]
 
 
