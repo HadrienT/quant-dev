@@ -23,6 +23,7 @@ module "dataCollector" {
 }
 
 module "webapp" {
+  count                   = var.enable_webapp ? 1 : 0
   source                  = "./modules/webapp"
   project_id              = var.project_id
   project_number          = var.project_number

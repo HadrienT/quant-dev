@@ -20,8 +20,8 @@ resource "google_compute_instance" "instance" {
 
     initialize_params {
       image = "projects/debian-cloud/global/images/debian-12-bookworm-v20241210"
-      size  = 30
-      type  = "pd-balanced"
+      size  = 100
+      type  = "pd-standard"
     }
   }
   can_ip_forward      = false

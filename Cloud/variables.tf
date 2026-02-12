@@ -77,3 +77,9 @@ variable "fred_api_key" {
 variable "domain_name" {
   description = "Custom domain to map to Cloud Run service"
 }
+
+variable "enable_webapp" {
+  description = "Enable or disable webapp infrastructure (Cloud Run and related resources)"
+  type        = bool
+  default     = true
+}
