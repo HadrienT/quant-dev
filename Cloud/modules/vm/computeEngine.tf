@@ -11,7 +11,7 @@ resource "google_compute_address" "static_ip" {
 #############################
 resource "google_compute_instance" "instance" {
   name         = var.vm_name
-  machine_type = "e2-medium"
+  machine_type = "e2-standard-2"
   zone         = "europe-west3-a"
 
   boot_disk {
