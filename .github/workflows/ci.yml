@@ -32,20 +32,56 @@ jobs:
           pip-compile requirements-dev.in --output-file=requirements-dev.txt
           pip install -r requirements.txt
 
-      # Step 4: Commit the updated requirements.txt if modified
-      - name: Commit updated requirements.txt
+      # Step 4: Build deterministic Cloud Function archive
+      - name: Build Cloud Function archive
+        run: |
+          python - <<'PY'
+          import os
+          import zipfile
+          from pathlib import Path
+
+          root = Path("GetData").resolve()
+          output = Path("Cloud/scripts/dataColCF.zip").resolve()
+          excluded_dirs = {".venv", "__pycache__", "tests", ".pytest_cache", "build"}
+          excluded_exts = {".ipynb"}
+
+          files = []
+          for path in root.rglob("*"):
+              if path.is_dir():
+                  continue
+              if path.suffix in excluded_exts:
+                  continue
+              if any(part in excluded_dirs for part in path.parts):
+                  continue
+              files.append(path)
+
+          files.sort()
+          output.parent.mkdir(parents=True, exist_ok=True)
+          with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+              for path in files:
+                  arcname = path.relative_to(root)
+                  info = zipfile.ZipInfo.from_file(path, arcname)
+                  info.date_time = (1980, 1, 1, 0, 0, 0)
+                  with path.open("rb") as f:
+                      data = f.read()
+                  zf.writestr(info, data)
+          print(f"Wrote {output}")
+          PY
+
+      # Step 5: Commit updated artifacts if modified
+      - name: Commit updated artifacts
         working-directory: ./GetData
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add requirements.txt requirements-dev.txt
-          git commit -m "CI: Update requirements.txt for GetData" || echo "No changes to commit"
+          git add requirements.txt requirements-dev.txt ../Cloud/scripts/dataColCF.zip
+          git commit -m "CI: Update GetData artifacts" || echo "No changes to commit"
           git pull --rebase https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }} main
           git push https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }} main
 
-      # Step 5: Install pytest
+      # Step 6: Install pytest
       - name: Install pytest
         run: pip install pytest
 
@@ -57,7 +93,7 @@ jobs:
           echo "$GCP_SERVICE_ACCOUNT_KEY" | base64 --decode > gcp-key.json
           echo "GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/gcp-key.json" >> $GITHUB_ENV
 
-      # Step 6: Run tests for GetData
+      # Step 7: Run tests for GetData
       - name: Run tests for GetData
         working-directory: ./GetData
         run: |
@@ -65,57 +101,6 @@ jobs:
             pytest tests --disable-warnings
           else
             echo "No tests found in GetData directory"
-            exit 0
-          fi
-
-  test_visualization:
-    runs-on: ubuntu-latest
-
-    steps:
-      # Step 1: Clone the repository
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      # Step 2: Set up Python for Visualization
-      - name: Set up Python for Visualization
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.11"
-
-      # Step 3: Install and generate dependencies
-      - name: Install dependencies for Visualization
-        working-directory: ./visualization
-        run: |
-          python -m pip install --upgrade pip pip-tools
-          pip-compile requirements.in --output-file=requirements.txt
-          pip-compile requirements-dev.in --output-file=requirements-dev.txt
-          pip install -r requirements.txt
-
-      # Step 4: Commit the updated requirements.txt if modified
-      - name: Commit updated requirements.txt
-        working-directory: ./visualization
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add requirements.txt requirements-dev.txt
-          git commit -m "CI: Update requirements.txt for Visualization" || echo "No changes to commit"
-          git pull --rebase https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }} main
-          git push https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }} main
-
-      # Step 5: Install pytest
-      - name: Install pytest
-        run: pip install pytest
-
-      # Step 6: Run tests for Visualization
-      - name: Run tests for Visualization
-        working-directory: ./visualization
-        run: |
-          if [ -f "test_*.py" ] || [ -d "tests" ]; then
-            pytest --disable-warnings
-          else
-            echo "No tests found in Visualization directory"
             exit 0
           fi
 
@@ -143,4 +128,3 @@ jobs:
       - name: Lint all code
         run: |
           flake8 ./GetData
-          flake8 ./visualization

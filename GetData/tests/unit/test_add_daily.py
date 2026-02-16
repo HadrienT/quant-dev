@@ -35,11 +35,13 @@ def sample_data():
 @patch("main.get_sp500_tickers")
 @patch("main.download_previous_day_data")
 @patch("google.cloud.bigquery.Client")
+@patch("main.ensure_dataset_and_table")
 @patch("main.load_to_temp_table")
 @patch("main.merge_into_main_table")
 def test_add_daily_successful_execution(
     mock_merge,
     mock_load,
+    mock_ensure,
     mock_bigquery_client,
     mock_download,
     mock_get_tickers,
@@ -65,6 +67,12 @@ def test_add_daily_successful_execution(
     # Verify BigQuery client was created with correct project
     mock_bigquery_client.assert_called_once_with(project="quant-dev-442615")
 
+    mock_ensure.assert_called_once_with(
+        mock_client,
+        "financial_data",
+        "quant-dev-442615.financial_data.sp500_data",
+    )
+
     # Verify temp table load
     mock_load.assert_called_once()
     _, args, _ = mock_load.mock_calls[0]
@@ -83,11 +91,13 @@ def test_add_daily_successful_execution(
 @patch("main.get_sp500_tickers")
 @patch("main.download_previous_day_data")
 @patch("google.cloud.bigquery.Client")
+@patch("main.ensure_dataset_and_table")
 @patch("main.load_to_temp_table")
 @patch("main.merge_into_main_table")
 def test_add_daily_no_data_available(
     mock_merge,
     mock_load,
+    mock_ensure,
     mock_bigquery_client,
     mock_download,
     mock_get_tickers,
@@ -107,6 +117,7 @@ def test_add_daily_no_data_available(
     mock_get_tickers.assert_called_once()
     mock_download.assert_called_once()
     mock_bigquery_client.assert_not_called()
+    mock_ensure.assert_not_called()
     mock_load.assert_not_called()
     mock_merge.assert_not_called()
 
@@ -114,11 +125,13 @@ def test_add_daily_no_data_available(
 @patch("main.get_sp500_tickers")
 @patch("main.download_previous_day_data")
 @patch("google.cloud.bigquery.Client")
+@patch("main.ensure_dataset_and_table")
 @patch("main.load_to_temp_table")
 @patch("main.merge_into_main_table")
 def test_add_daily_error_handling(
     mock_merge,
     mock_load,
+    mock_ensure,
     mock_bigquery_client,
     mock_download,
     mock_get_tickers,
@@ -142,5 +155,6 @@ def test_add_daily_error_handling(
     # Verify steps until error
     mock_get_tickers.assert_called_once()
     mock_download.assert_called_once()
+    mock_ensure.assert_called_once()
     mock_load.assert_called_once()
     mock_merge.assert_not_called()  # Should not be called after error

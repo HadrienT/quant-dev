@@ -36,23 +36,20 @@ def sample_data():
     return df
 
 
+@patch("main._last_trading_day")
 @patch("yfinance.download")
-def test_download_previous_day_data(mock_yf_download, sample_data):
+def test_download_previous_day_data(mock_yf_download, mock_last_trading_day, sample_data):
     """Test function download_previous_day_data with simulated data."""
+    fixed_date = datetime(2024, 2, 6)
+    mock_last_trading_day.return_value = fixed_date
     mock_yf_download.return_value = sample_data  # Mock yfinance.download()
 
     tickers = ["AAPL", "MSFT"]
     result = download_previous_day_data(tickers)
 
-    current_date = datetime.now() - timedelta(days=1)
-    while not pd.Timestamp(current_date).isoweekday() in range(
-        1, 6
-    ):  # Monday (1) to Friday (5)
-        current_date -= timedelta(days=1)
-
     # Check the arguments passed to yfinance.download()
-    expected_start_date = current_date.strftime("%Y-%m-%d")
-    expected_end_date = (current_date + timedelta(days=1)).strftime("%Y-%m-%d")
+    expected_start_date = fixed_date.strftime("%Y-%m-%d")
+    expected_end_date = (fixed_date + timedelta(days=1)).strftime("%Y-%m-%d")
 
     mock_yf_download.assert_called_once_with(
         tickers=" ".join(tickers),
@@ -82,9 +79,11 @@ def test_download_previous_day_data(mock_yf_download, sample_data):
     }, "Incorrect tickers in the DataFrame"
 
 
+@patch("main._last_trading_day")
 @patch("yfinance.download")
-def test_download_previous_day_data_no_data(mock_yf_download):
+def test_download_previous_day_data_no_data(mock_yf_download, mock_last_trading_day):
     """Test the case where no data is returned."""
+    mock_last_trading_day.return_value = datetime(2024, 2, 6)
     mock_yf_download.return_value = pd.DataFrame()  # Simulate no data returned
 
     tickers = ["AAPL", "MSFT"]

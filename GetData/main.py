@@ -1,206 +1,267 @@
-import yfinance as yf
-import pandas as pd
+import logging
+import os
+import time
 from datetime import datetime, timedelta
+from pathlib import Path
+from typing import Iterable, List, Optional
+from zoneinfo import ZoneInfo
+
+import pandas as pd
+import pandas_market_calendars as mcal
+import yfinance as yf
 from google.cloud import bigquery
 
+logger = logging.getLogger("quant-dev.ingestion")
+logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
 
-# Download the list of S&P 500 tickers
-# def get_sp500_tickers():
-#     """Fetches the list of S&P 500 tickers from Wikipedia."""
-#     url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
-#     table = pd.read_html(url, header=0)
-#     sp500_table = table[0]  # The main table is the first one
-#     return sp500_table["Symbol"].tolist()
+PROJECT_ID = os.getenv("PROJECT_ID", "quant-dev-442615")
+DATASET_ID = os.getenv("DATASET_ID", "financial_data")
+MAIN_TABLE_NAME = os.getenv("MAIN_TABLE_NAME", "sp500_data")
+TEMP_TABLE_NAME = os.getenv("TEMP_TABLE_NAME", "temp_sp500_data")
+DATASET_LOCATION = os.getenv("DATASET_LOCATION", "US")
+TICKERS_PATH = Path(os.getenv("TICKERS_PATH", Path(__file__).with_name("tickers.csv")))
+CHUNK_SIZE = int(os.getenv("CHUNK_SIZE", "100"))
+MAX_RETRIES = int(os.getenv("MAX_RETRIES", "3"))
+RETRY_BACKOFF_SECONDS = float(os.getenv("RETRY_BACKOFF_SECONDS", "1.5"))
+MARKET_CALENDAR = os.getenv("MARKET_CALENDAR", "NYSE")
+MARKET_TZ = os.getenv("MARKET_TZ", "America/New_York")
+
+SCHEMA = [
+    bigquery.SchemaField("Date", "DATE", mode="REQUIRED"),
+    bigquery.SchemaField("Ticker", "STRING", mode="REQUIRED"),
+    bigquery.SchemaField("Open", "FLOAT64"),
+    bigquery.SchemaField("High", "FLOAT64"),
+    bigquery.SchemaField("Low", "FLOAT64"),
+    bigquery.SchemaField("Close", "FLOAT64"),
+    bigquery.SchemaField("Volume", "INTEGER"),
+]
 
 
-def get_sp500_tickers():
-    return pd.read_csv("tickers.csv", header=None)[0].tolist()
+def get_sp500_tickers() -> List[str]:
+    return pd.read_csv(TICKERS_PATH, header=None)[0].dropna().astype(str).tolist()
 
 
-# Download previous day's data
-def download_previous_day_data(tickers):
+def _chunked(items: Iterable[str], size: int) -> Iterable[List[str]]:
+    batch: List[str] = []
+    for item in items:
+        batch.append(item)
+        if len(batch) >= size:
+            yield batch
+            batch = []
+    if batch:
+        yield batch
+
+
+def _last_trading_day(reference_dt: Optional[datetime] = None, calendar_name: str = MARKET_CALENDAR) -> datetime:
+    now = reference_dt or datetime.now(ZoneInfo(MARKET_TZ))
+    start = (now - timedelta(days=10)).date()
+    end = now.date()
+    try:
+        calendar = mcal.get_calendar(calendar_name)
+        schedule = calendar.schedule(start_date=start, end_date=end)
+        if schedule.empty:
+            raise ValueError("Empty market schedule")
+        last_session = schedule.index[-1].to_pydatetime().date()
+        return datetime.combine(last_session, datetime.min.time(), tzinfo=ZoneInfo(MARKET_TZ))
+    except Exception as exc:
+        logger.warning("Falling back to weekday logic: %s", exc)
+        current_date = now - timedelta(days=1)
+        while current_date.isoweekday() not in range(1, 6):
+            current_date -= timedelta(days=1)
+        return current_date
+
+
+def _download_yfinance_chunk(tickers: List[str], start_date: str, end_date: str) -> pd.DataFrame:
+    last_error: Optional[Exception] = None
+    for attempt in range(1, MAX_RETRIES + 1):
+        try:
+            data = yf.download(
+                tickers=" ".join(tickers),
+                start=start_date,
+                end=end_date,
+                interval="1d",
+                group_by="ticker",
+                threads=True,
+            )
+            if not data.empty:
+                return data
+        except Exception as exc:
+            last_error = exc
+            logger.warning("Download attempt %s failed: %s", attempt, exc)
+        time.sleep(RETRY_BACKOFF_SECONDS * attempt)
+    if last_error:
+        logger.error("Download failed after %s attempts: %s", MAX_RETRIES, last_error)
+    return pd.DataFrame()
+
+
+def _normalize_yfinance_data(df: pd.DataFrame, tickers: List[str]) -> pd.DataFrame:
+    if df.empty:
+        return df
+    if isinstance(df.columns, pd.MultiIndex):
+        data = df.stack(level=0, future_stack=True).reset_index()
+    else:
+        data = df.reset_index().copy()
+        ticker = tickers[0] if tickers else "UNKNOWN"
+        data["Ticker"] = ticker
+
+    expected_cols = ["Date", "Ticker", "Open", "High", "Low", "Close", "Volume"]
+    data = data[[col for col in expected_cols if col in data.columns]]
+    data["Date"] = pd.to_datetime(data["Date"]).dt.date
+    for col in ["Open", "High", "Low", "Close", "Volume"]:
+        if col in data.columns:
+            data[col] = pd.to_numeric(data[col], errors="coerce")
+    if "Volume" in data.columns:
+        data["Volume"] = data["Volume"].fillna(0).astype("int64")
+    return data
+
+
+def _download_prices(tickers: List[str], start_date: str, end_date: str) -> pd.DataFrame:
+    frames: List[pd.DataFrame] = []
+    for batch in _chunked(tickers, CHUNK_SIZE):
+        raw = _download_yfinance_chunk(batch, start_date, end_date)
+        normalized = _normalize_yfinance_data(raw, batch)
+        if not normalized.empty:
+            frames.append(normalized)
+    if not frames:
+        return pd.DataFrame()
+    data = pd.concat(frames, ignore_index=True)
+    data = data.dropna(subset=["Date", "Ticker"])
+    data = data.drop_duplicates(subset=["Date", "Ticker"], keep="last")
+    return data
+
+
+def download_previous_day_data(tickers: List[str], reference_dt: Optional[datetime] = None) -> pd.DataFrame:
     """
-    Downloads daily data for the tickers from the previous day.
+    Downloads daily data for the tickers from the previous trading day.
     """
-    # start_date = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
-    # end_date = (datetime.now() - timedelta(days=0)).strftime("%Y-%m-%d")
-
-    current_date = datetime.now() - timedelta(days=1)
-    while not pd.Timestamp(current_date).isoweekday() in range(
-        1, 6
-    ):  # Monday (1) to Friday (5)
-        current_date -= timedelta(days=1)
-
-    start_date = current_date.strftime("%Y-%m-%d")
-    end_date = (current_date + timedelta(days=1)).strftime("%Y-%m-%d")
-
-    data = yf.download(
-        tickers=" ".join(tickers),
-        start=start_date,
-        end=end_date,
-        interval="1d",
-        group_by="ticker",
-        threads=True,
-    )
+    last_session = _last_trading_day(reference_dt)
+    start_date = last_session.strftime("%Y-%m-%d")
+    end_date = (last_session + timedelta(days=1)).strftime("%Y-%m-%d")
+    data = _download_prices(tickers, start_date, end_date)
     if data.empty:
-        print(f"No data available for {start_date}.")
-        return pd.DataFrame()  # Returns an empty DataFrame if no data is available
-    # Restructure the data
-    data = data.stack(level=0, future_stack=True).reset_index()
-    columns = [
-        "Date",
-        "Ticker",
-        "Open",
-        "High",
-        "Low",
-        "Close",
-        "Volume",
-    ]
-    return data[columns]
+        logger.info("No data available for %s", start_date)
+    return data
 
 
-# Download data for all tickers
-def download_sp500_data(tickers, start_date="2000-01-01", end_date=None):
+def download_sp500_data(tickers: List[str], start_date: str = "2000-01-01", end_date: Optional[str] = None) -> pd.DataFrame:
     """
     Downloads daily data for all S&P 500 tickers.
     """
-    # Fetch the data via yfinance
-    data = yf.download(
-        tickers=" ".join(tickers),
-        start=start_date,
-        end=end_date,
-        interval="1d",
-        group_by="ticker",  # Organizes the data by ticker
-        threads=True,  # Parallel download
-    )
-
-    data = data.stack(level=0, future_stack=True).reset_index()  # Make tickers a column
-    columns = [
-        "Date",
-        "Ticker",
-        "Open",
-        "High",
-        "Low",
-        "Close",
-        "Volume",
-    ]
-    return data[columns]
+    end_date = end_date or datetime.now(ZoneInfo(MARKET_TZ)).strftime("%Y-%m-%d")
+    return _download_prices(tickers, start_date, end_date)
 
 
-# Load data into BigQuery
-def load_data_to_bigquery(df, table_id, project_id):
+def ensure_dataset_and_table(client: bigquery.Client, dataset_id: str, table_id: str) -> None:
+    dataset_ref = bigquery.Dataset(f"{client.project}.{dataset_id}")
+    dataset_ref.location = DATASET_LOCATION
+    client.create_dataset(dataset_ref, exists_ok=True)
+
+    table_ref = bigquery.Table(table_id, schema=SCHEMA)
+    table_ref.time_partitioning = bigquery.TimePartitioning(field="Date")
+    table_ref.clustering_fields = ["Ticker"]
+    client.create_table(table_ref, exists_ok=True)
+
+
+def load_data_to_bigquery(df: pd.DataFrame, table_id: str, project_id: str) -> None:
     """
     Loads a DataFrame into a BigQuery table.
-
-    Arguments:
-        df : pandas.DataFrame containing the data to load.
-        table_id : Full ID of the BigQuery table (e.g., dataset.table_name).
-        project_id : Google Cloud project ID.
     """
     client = bigquery.Client(project=project_id)
-
-    # Convert the data to BigQuery format
-    job = client.load_table_from_dataframe(df, table_id)
-
-    # Wait for the job to complete
+    job_config = bigquery.LoadJobConfig(schema=SCHEMA)
+    job = client.load_table_from_dataframe(df, table_id, job_config=job_config)
     job.result()
-    print(f"Data has been loaded into {table_id}")
+    logger.info("Data has been loaded into %s", table_id)
 
 
-# Load data into a temporary table
-def load_to_temp_table(client, df, temp_table_id):
+def load_to_temp_table(client: bigquery.Client, df: pd.DataFrame, temp_table_id: str) -> None:
     """
     Loads data into a temporary BigQuery table.
     """
     job_config = bigquery.LoadJobConfig(
-        write_disposition="WRITE_TRUNCATE"  # Overwrites existing data
+        write_disposition="WRITE_TRUNCATE",
+        schema=SCHEMA,
     )
     job = client.load_table_from_dataframe(df, temp_table_id, job_config=job_config)
     job.result()
-    print(f"Data loaded into temporary table {temp_table_id}")
+    logger.info("Data loaded into temporary table %s", temp_table_id)
 
 
-# Merge data with the main table
-def merge_into_main_table(client, temp_table_id, main_table_id):
+def merge_into_main_table(client: bigquery.Client, temp_table_id: str, main_table_id: str) -> None:
     """
-    Merges data from the temporary table into the main table.
+    Upserts data from the temporary table into the main table.
     """
     query = f"""
     MERGE `{main_table_id}` AS main
     USING `{temp_table_id}` AS temp
     ON main.Date = temp.Date AND main.Ticker = temp.Ticker
+    WHEN MATCHED THEN
+      UPDATE SET
+        Open = temp.Open,
+        High = temp.High,
+        Low = temp.Low,
+        Close = temp.Close,
+        Volume = temp.Volume
     WHEN NOT MATCHED THEN
-      INSERT (Date, Ticker, Open, High, Low, Close, Volume) 
+      INSERT (Date, Ticker, Open, High, Low, Close, Volume)
       VALUES (temp.Date, temp.Ticker, temp.Open, temp.High, temp.Low, temp.Close, temp.Volume)
     """
     job = client.query(query)
     job.result()
-    print(f"Data merged into main table {main_table_id}")
+    logger.info("Data merged into main table %s", main_table_id)
 
 
-def fill_table():
-    # Step 1: Fetch tickers
-    print("Downloading S&P 500 tickers...")
-    sp500_tickers = get_sp500_tickers()
-    print(f"Number of tickers fetched: {len(sp500_tickers)}")
+def fill_table() -> None:
+    logger.info("Downloading S&P 500 tickers...")
+    tickers = get_sp500_tickers()
+    logger.info("Number of tickers fetched: %s", len(tickers))
 
-    # Step 2: Download data
-    print("Downloading daily data...")
-    end_date = datetime.today().strftime("%Y-%m-%d")
-    sp500_data = download_sp500_data(
-        sp500_tickers, start_date="2000-01-01", end_date=end_date
-    )
+    logger.info("Downloading full daily history...")
+    sp500_data = download_sp500_data(tickers)
+    if sp500_data.empty:
+        logger.warning("No data available for full ingestion.")
+        return
 
-    # Step 3: Load into BigQuery
-    print("Loading data into BigQuery...")
-    PROJECT_ID = "quant-dev-442615"  # Replace with your project ID
-    DATASET_ID = "financial_data"  # Replace with your dataset name
-    TABLE_ID = "sp500_data"  # Table name
+    client = bigquery.Client(project=PROJECT_ID)
+    main_table_id = f"{PROJECT_ID}.{DATASET_ID}.{MAIN_TABLE_NAME}"
+    ensure_dataset_and_table(client, DATASET_ID, main_table_id)
 
-    # # Load data
-    # load_data_to_bigquery(
-    #     sp500_data,
-    #     table_id=f"{PROJECT_ID}.{DATASET_ID}.{TABLE_ID}",
-    #     project_id=PROJECT_ID,
-    # )
+    logger.info("Loading full history into BigQuery...")
+    load_data_to_bigquery(sp500_data, main_table_id, PROJECT_ID)
 
 
-def add_daily():
-    # Step 1: Configuration
-    PROJECT_ID = "quant-dev-442615"
-    DATASET_ID = "financial_data"
-    MAIN_TABLE_ID = f"{PROJECT_ID}.{DATASET_ID}.sp500_data"
-    TEMP_TABLE_ID = f"{PROJECT_ID}.{DATASET_ID}.temp_sp500_data"
+def add_daily() -> None:
+    main_table_id = f"{PROJECT_ID}.{DATASET_ID}.{MAIN_TABLE_NAME}"
+    temp_table_id = f"{PROJECT_ID}.{DATASET_ID}.{TEMP_TABLE_NAME}"
 
-    # Fetch tickers
-    print("Downloading S&P 500 tickers...")
+    logger.info("Downloading S&P 500 tickers...")
     tickers = get_sp500_tickers()
 
-    # Step 2: Download data
-    print("Downloading data for the previous day...")
+    logger.info("Downloading data for the previous trading day...")
     sp500_data = download_previous_day_data(tickers)
     if sp500_data.empty:
-        print("No data available. Execution stopped.")
-        return  # Stop execution if no data is available
-    sp500_data["Date"] = pd.to_datetime(sp500_data["Date"]).dt.date
-    # Convert the Volume column to integer
-    sp500_data["Volume"] = sp500_data["Volume"].fillna(0).astype(int)
+        logger.warning("No data available. Execution stopped.")
+        return
 
-    # Step 3: Load into BigQuery
     client = bigquery.Client(project=PROJECT_ID)
-    print("Loading data into a temporary table...")
-    load_to_temp_table(client, sp500_data, TEMP_TABLE_ID)
+    ensure_dataset_and_table(client, DATASET_ID, main_table_id)
 
-    # Step 4: Merge with the main table
-    print("Merging data with the main table...")
-    merge_into_main_table(client, TEMP_TABLE_ID, MAIN_TABLE_ID)
+    logger.info("Loading data into a temporary table...")
+    load_to_temp_table(client, sp500_data, temp_table_id)
+
+    logger.info("Merging data with the main table...")
+    merge_into_main_table(client, temp_table_id, main_table_id)
 
 
 def main(request):
-    add_daily()
+    mode = "daily"
+    if request is not None:
+        mode = request.args.get("mode", mode) if hasattr(request, "args") else mode
+    if mode == "full":
+        fill_table()
+    else:
+        add_daily()
     return "Success", 200
 
 
 if __name__ == "__main__":
-    # fill_table()
     add_daily()

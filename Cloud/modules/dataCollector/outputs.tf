@@ -1,6 +1,6 @@
 output "data_function_url" {
   description = "URL of the data retrieval Cloud Function"
-  value       = google_cloudfunctions_function.add_daily_function.https_trigger_url
+  value       = google_cloudfunctions2_function.add_daily_function.service_config[0].uri
 }
 
 output "bigquery_dataset" {

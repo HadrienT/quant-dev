@@ -59,7 +59,9 @@ def test_load_data_to_bigquery(mock_bigquery_client, sample_dataframe):
     mock_bigquery_client.assert_called_once_with(
         project=project_id
     )  # Ensure the client is created with the correct project ID
-    mock_client_instance.load_table_from_dataframe.assert_called_once_with(
-        sample_dataframe, table_id
-    )  # Check if the method is called
+    mock_client_instance.load_table_from_dataframe.assert_called_once()
+    call_args = mock_client_instance.load_table_from_dataframe.call_args
+    assert call_args[0][0].equals(sample_dataframe)
+    assert call_args[0][1] == table_id
+    assert "job_config" in call_args[1]
     mock_job.result.assert_called_once()  # Ensure the job waits for completion
