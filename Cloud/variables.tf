@@ -78,8 +78,82 @@ variable "domain_name" {
   description = "Custom domain to map to Cloud Run service"
 }
 
+variable "api_service_name" {
+  description = "Cloud Run service name for the pricing API"
+  type        = string
+  default     = "quantmodeling-api"
+}
+
+variable "bq_project_id" {
+  description = "BigQuery project ID"
+  type        = string
+  default     = ""
+}
+
+variable "bq_dataset_id" {
+  description = "BigQuery dataset ID"
+  type        = string
+  default     = ""
+}
+
+variable "bq_table_id" {
+  description = "BigQuery table ID"
+  type        = string
+  default     = ""
+}
+
+variable "api_key" {
+  description = "API key to protect the pricing service"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
 variable "enable_webapp" {
   description = "Enable or disable webapp infrastructure (Cloud Run and related resources)"
   type        = bool
   default     = true
+}
+
+variable "enable_genealogy" {
+  description = "Enable or disable genealogy API infrastructure (Cloud Run, GCS, Cloud Build)"
+  type        = bool
+  default     = false
+}
+
+variable "genealogy_repository_name" {
+  description = "Artifact Registry repository name for genealogy API"
+  type        = string
+  default     = "genealogy-api"
+}
+
+variable "genealogy_service_name" {
+  description = "Cloud Run service name for genealogy API"
+  type        = string
+  default     = "genealogy-api"
+}
+
+variable "genealogy_github_repo_name" {
+  description = "GitHub repository name for genealogy project"
+  type        = string
+  default     = "genealogy"
+}
+
+variable "genealogy_jwt_secret" {
+  description = "JWT secret key for genealogy API authentication"
+  type        = string
+  sensitive   = true
+}
+
+variable "genealogy_seed_users" {
+  description = "JSON array of seed users for genealogy API: [{username, password, role}]"
+  type        = string
+  sensitive   = true
+  default     = "[]"
+}
+
+variable "bq_reader_key_path" {
+  description = "Output path for the BigQuery reader key JSON"
+  type        = string
+  default     = "./secrets/bq-key.json"
 }

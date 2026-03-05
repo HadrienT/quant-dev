@@ -3,7 +3,7 @@
 #############################
 resource "google_cloudbuild_trigger" "build_trigger" {
   name            = "cloud-run-build-trigger"
-  filename        = "Cloud/cloudbuild.yaml"
+  filename        = "cloudbuild.yaml"
   location        = "global"
   service_account = "projects/${var.project_id}/serviceAccounts/${var.builder_service_account}"
 
@@ -16,9 +16,11 @@ resource "google_cloudbuild_trigger" "build_trigger" {
   }
 
   substitutions = {
-    _SERVICE_NAME = var.service_name
-    _REGION       = var.region
-    _REPOSITORY   = var.repository_name
-    _PROJECT_ID   = var.project_id
+    _SERVICE_NAME     = var.service_name
+    _API_SERVICE_NAME = "quantmodeling-api"
+    _REGION           = var.region
+    _REPOSITORY       = var.repository_name
+    _PROJECT_ID       = var.project_id
+    _API_URL          = var.api_url
   }
 }

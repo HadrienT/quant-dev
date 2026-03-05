@@ -11,14 +11,18 @@ resource "google_cloud_run_v2_service" "service" {
     containers {
       image = "${var.region}-docker.pkg.dev/${var.project_id}/${var.repository_name}/${var.service_name}:latest"
       env {
-        name  = "FRED_API_KEY"
-        value = var.fred_api_key
+        name  = "API_URL"
+        value = var.api_url
       }
       resources {
         limits = {
-          memory = "1024Mi"
+          memory = "512Mi"
           cpu    = "1"
         }
+      }
+
+      ports {
+        container_port = 8080
       }
     }
 
@@ -27,6 +31,6 @@ resource "google_cloud_run_v2_service" "service" {
       max_instance_count = 1
     }
 
-    timeout = "600s"
+    timeout = "60s"
   }
 }

@@ -3,24 +3,21 @@ variable "project_id" {
   type        = string
 }
 
-variable "project_number" {
-  description = "GCP project number"
-  type        = string
-}
-
 variable "region" {
-  description = "Region for Cloud Run"
+  description = "GCP region"
   type        = string
 }
 
 variable "repository_name" {
-  description = "Name of the Artifact Registry repository"
+  description = "Artifact Registry repository name"
   type        = string
+  default     = "genealogy-api"
 }
 
 variable "service_name" {
-  description = "Name of the Cloud Run service"
+  description = "Cloud Run service name"
   type        = string
+  default     = "genealogy-api"
 }
 
 variable "github_owner" {
@@ -29,8 +26,9 @@ variable "github_owner" {
 }
 
 variable "github_repo_name" {
-  description = "Name of the GitHub repository"
+  description = "GitHub repository name"
   type        = string
+  default     = "genealogy"
 }
 
 variable "builder_service_account" {
@@ -38,12 +36,15 @@ variable "builder_service_account" {
   type        = string
 }
 
-variable "api_url" {
-  description = "URL of the API Cloud Run service (injected into nginx reverse proxy)"
+variable "jwt_secret" {
+  description = "Secret key for JWT token signing"
   type        = string
+  sensitive   = true
 }
 
-variable "domain_name" {
-  description = "Custom domain name for Cloud Run"
+variable "seed_users" {
+  description = "JSON array of initial users: [{username, password, role}]"
   type        = string
+  sensitive   = true
+  default     = "[]"
 }
