@@ -123,3 +123,32 @@ def test_load_prices_since_filters(store, sample_row):
 
     assert len(store.load_prices()) == 2
     assert len(store.load_prices(since="2025-01-01")) == 1
+
+
+def test_missing_prices_become_null_not_nan(store, sample_row):
+    """A gap in the data must be SQL NULL.
+
+    psycopg writes a pandas NaN as the IEEE value, which is not the same thing:
+    NULL is skipped by SUM and AVG, whereas one NaN turns the whole aggregate
+    into NaN. Migrating the BigQuery export surfaced this on 1,065,133 rows.
+    """
+    gapped = sample_row.copy()
+    gapped["Close"] = [float("nan")]
+    gapped["High"] = [None]
+    store.upsert(gapped)
+
+    with store.connect() as conn:
+        nulls = conn.execute(
+            f'SELECT COUNT(*) FROM "{TEST_TABLE}" WHERE close IS NULL AND high IS NULL'
+        ).fetchone()[0]
+        nans = conn.execute(
+            f"SELECT COUNT(*) FROM \"{TEST_TABLE}\" WHERE close = 'NaN'::float8"
+        ).fetchone()[0]
+
+    assert nulls == 1
+    assert nans == 0
+
+    # The point of the distinction: aggregates stay usable.
+    with store.connect() as conn:
+        total = conn.execute(f'SELECT SUM(open) FROM "{TEST_TABLE}"').fetchone()[0]
+    assert total == pytest.approx(228.53)

@@ -22,6 +22,10 @@ logger = logging.getLogger("quant-dev.ingestion")
 # DataFrames carry yfinance's capitalised names; Postgres columns are lowercase.
 DB_COLUMNS = [col.lower() for col in COLUMNS]
 
+# Columns yfinance can leave empty for a session; Date and Ticker are the key
+# and Volume is filled with 0 upstream.
+NULLABLE_COLUMNS = ["Open", "High", "Low", "Close"]
+
 CREATE_TABLE = """
 CREATE TABLE IF NOT EXISTS {table} (
     date    DATE             NOT NULL,
@@ -83,6 +87,14 @@ class PostgresStore:
         missing = set(COLUMNS) - set(frame.columns)
         if missing:
             raise ValueError(f"DataFrame is missing required columns: {sorted(missing)}")
+
+        # A missing price is NaN in pandas, and psycopg writes that as the IEEE
+        # value rather than SQL NULL. The two are not interchangeable: NULL is
+        # skipped by SUM and AVG, while a single NaN poisons the whole
+        # aggregate. Convert before the COPY so gaps land as NULL.
+        for col in NULLABLE_COLUMNS:
+            if col in frame.columns:
+                frame[col] = frame[col].astype(object).where(frame[col].notna(), None)
 
         columns = sql.SQL(", ").join(sql.Identifier(col) for col in DB_COLUMNS)
         updatable = [col for col in DB_COLUMNS if col not in ("date", "ticker")]
