@@ -1,68 +1,31 @@
-# Local stack, replacing the GCP deployment.
+# The Streamlit app only. Data ingestion and the Postgres it reads from moved
+# to the data-ingest repository, which owns the database.
 #
-#   docker compose up -d postgres          # the data store, always on
-#   docker compose run --rm ingestion      # one ingestion run (the timer does this)
-#   docker compose --profile viz up -d     # the Streamlit app, on demand
+#   docker compose up -d          http://127.0.0.1:8501
 #
-# Everything binds to 127.0.0.1: this stack is reachable from the server only.
+# The app joins data-ingest's compose network and reaches Postgres by service
+# name, so the database needs no port published beyond the host loopback.
+# Start data-ingest's stack first.
 
 services:
-  postgres:
-    image: postgres:16
-    container_name: quant-dev-postgres
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: ${PGDATABASE:-quantdev}
-      POSTGRES_USER: ${PGUSER:-quantdev}
-      POSTGRES_PASSWORD: ${PGPASSWORD:?PGPASSWORD must be set in .env}
-    ports:
-      # 5433 on the host: 5432 is already taken by another project's Postgres.
-      - "127.0.0.1:5433:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${PGUSER:-quantdev} -d ${PGDATABASE:-quantdev}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  ingestion:
-    build:
-      context: ./GetData
-    image: quant-dev/ingestion:latest
-    container_name: quant-dev-ingestion
-    depends_on:
-      postgres:
-        condition: service_healthy
-    environment:
-      PGHOST: postgres
-      PGPORT: 5432
-      PGDATABASE: ${PGDATABASE:-quantdev}
-      PGUSER: ${PGUSER:-quantdev}
-      PGPASSWORD: ${PGPASSWORD}
-      LOG_LEVEL: ${LOG_LEVEL:-INFO}
-    # Run to completion, not as a daemon: scheduling is systemd's job.
-    restart: "no"
-    command: ["--mode", "daily"]
-
   visualization:
     build:
       context: ./visualization
     image: quant-dev/visualization:latest
     container_name: quant-dev-visualization
-    profiles: ["viz"]
-    depends_on:
-      postgres:
-        condition: service_healthy
     environment:
-      PGHOST: postgres
-      PGPORT: 5432
-      PGDATABASE: ${PGDATABASE:-quantdev}
-      PGUSER: ${PGUSER:-quantdev}
-      PGPASSWORD: ${PGPASSWORD}
+      PGHOST: ${PGHOST:-postgres}
+      PGPORT: ${PGPORT:-5432}
+      PGDATABASE: ${PGDATABASE:-dataingest}
+      PGUSER: ${PGUSER:-dataingest}
+      PGPASSWORD: ${PGPASSWORD:?PGPASSWORD must be set in .env}
       FRED_API_KEY: ${FRED_API_KEY:-}
     ports:
       - "127.0.0.1:8501:8080"
+    networks:
+      - data-ingest
 
-volumes:
-  pgdata:
+networks:
+  data-ingest:
+    external: true
+    name: data-ingest_default

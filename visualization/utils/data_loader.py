@@ -4,7 +4,7 @@ import psycopg
 import streamlit as st
 from fredapi import Fred
 
-from .config import HISTORY_START, MAIN_TABLE_NAME, dsn, fred_api_key
+from .config import HISTORY_START, PRICES_SCHEMA, PRICES_TABLE, dsn, fred_api_key
 
 
 @st.cache_data
@@ -27,7 +27,7 @@ def load_data() -> pd.DataFrame:
            low AS "Low",
            close AS "Close",
            volume AS "Volume"
-    FROM "{MAIN_TABLE_NAME}"
+    FROM "{PRICES_SCHEMA}"."{PRICES_TABLE}"
     WHERE date > %s
     ORDER BY date
     """
