@@ -1,7 +1,5 @@
 pandas
 pandas-market-calendars
 yfinance
-google-cloud-bigquery
-google-cloud-bigquery-storage
+psycopg[binary]
 pyarrow
-db-dtypes

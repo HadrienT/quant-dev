@@ -1,4 +1,5 @@
 import pandas as pd
+import pytest
 import yfinance as yf
 
 
@@ -26,6 +27,7 @@ def create_sample_multiindex_df():
     return df
 
 
+@pytest.mark.network
 def test_multiindex_structure():
     """Tests if the DataFrame has the correct MultiIndex structure and data values."""
 

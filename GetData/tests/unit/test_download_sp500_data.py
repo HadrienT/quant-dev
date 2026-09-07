@@ -2,12 +2,6 @@ import pytest
 import pandas as pd
 from unittest.mock import patch
 
-
-import sys
-import os
-
-sys.path.insert(0, os.path.abspath(os.path.dirname(__file__) + "/../.."))
-
 from main import download_sp500_data
 
 

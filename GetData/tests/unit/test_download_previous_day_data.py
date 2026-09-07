@@ -3,10 +3,6 @@ import pandas as pd
 from datetime import datetime, timedelta
 from unittest.mock import patch
 
-import sys
-import os
-
-sys.path.insert(0, os.path.abspath(os.path.dirname(__file__) + "/../.."))
 
 from main import download_previous_day_data
 
@@ -36,7 +32,7 @@ def sample_data():
     return df
 
 
-@patch("main._last_trading_day")
+@patch("market_data._last_trading_day")
 @patch("yfinance.download")
 def test_download_previous_day_data(mock_yf_download, mock_last_trading_day, sample_data):
     """Test function download_previous_day_data with simulated data."""
@@ -79,7 +75,7 @@ def test_download_previous_day_data(mock_yf_download, mock_last_trading_day, sam
     }, "Incorrect tickers in the DataFrame"
 
 
-@patch("main._last_trading_day")
+@patch("market_data._last_trading_day")
 @patch("yfinance.download")
 def test_download_previous_day_data_no_data(mock_yf_download, mock_last_trading_day):
     """Test the case where no data is returned."""

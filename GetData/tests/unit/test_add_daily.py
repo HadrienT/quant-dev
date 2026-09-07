@@ -1,11 +1,6 @@
-import pytest
 import pandas as pd
-from unittest.mock import patch, MagicMock
-
-import sys
-import os
-
-sys.path.insert(0, os.path.abspath(os.path.dirname(__file__) + "/../.."))
+import pytest
+from unittest.mock import MagicMock, patch
 
 from main import add_daily
 
@@ -32,129 +27,57 @@ def sample_data():
     return df
 
 
+@pytest.fixture
+def store():
+    """A stand-in for PostgresStore, so no database is needed."""
+    mock = MagicMock()
+    mock.upsert.return_value = 3
+    return mock
+
+
 @patch("main.get_sp500_tickers")
 @patch("main.download_previous_day_data")
-@patch("google.cloud.bigquery.Client")
-@patch("main.ensure_dataset_and_table")
-@patch("main.load_to_temp_table")
-@patch("main.merge_into_main_table")
-def test_add_daily_successful_execution(
-    mock_merge,
-    mock_load,
-    mock_ensure,
-    mock_bigquery_client,
-    mock_download,
-    mock_get_tickers,
-    sample_tickers,
-    sample_data,
-):
-    """
-    Test successful execution of the add_daily function with all steps.
-    """
-    # Configure mocks
+def test_add_daily_successful_execution(mock_download, mock_get_tickers, store, sample_tickers, sample_data):
+    """Tickers are fetched, the previous session is downloaded, then upserted."""
     mock_get_tickers.return_value = sample_tickers
     mock_download.return_value = sample_data
-    mock_client = MagicMock()
-    mock_bigquery_client.return_value = mock_client
 
-    # Execute function
-    add_daily()
+    rows = add_daily(store)
 
-    # Verify all steps were executed in order
     mock_get_tickers.assert_called_once()
     mock_download.assert_called_once_with(sample_tickers)
 
-    # Verify BigQuery client was created with correct project
-    mock_bigquery_client.assert_called_once_with(project="quant-dev-442615")
-
-    mock_ensure.assert_called_once_with(
-        mock_client,
-        "financial_data",
-        "quant-dev-442615.financial_data.sp500_data",
-    )
-
-    # Verify temp table load
-    mock_load.assert_called_once()
-    _, args, _ = mock_load.mock_calls[0]
-    assert args[0] == mock_client  # client
-    assert args[1].equals(sample_data)  # dataframe
-    assert args[2] == "quant-dev-442615.financial_data.temp_sp500_data"  # temp table id
-
-    # Verify merge operation
-    mock_merge.assert_called_once_with(
-        mock_client,
-        "quant-dev-442615.financial_data.temp_sp500_data",
-        "quant-dev-442615.financial_data.sp500_data",
-    )
+    store.ensure_schema.assert_called_once()
+    store.upsert.assert_called_once()
+    upserted = store.upsert.call_args[0][0]
+    assert upserted.equals(sample_data)
+    assert rows == 3
 
 
 @patch("main.get_sp500_tickers")
 @patch("main.download_previous_day_data")
-@patch("google.cloud.bigquery.Client")
-@patch("main.ensure_dataset_and_table")
-@patch("main.load_to_temp_table")
-@patch("main.merge_into_main_table")
-def test_add_daily_no_data_available(
-    mock_merge,
-    mock_load,
-    mock_ensure,
-    mock_bigquery_client,
-    mock_download,
-    mock_get_tickers,
-    sample_tickers,
-):
-    """
-    Test early exit when no data is available.
-    """
-    # Configure mocks
+def test_add_daily_no_data_available(mock_download, mock_get_tickers, store, sample_tickers):
+    """An empty download must not touch the database at all."""
     mock_get_tickers.return_value = sample_tickers
-    mock_download.return_value = pd.DataFrame()  # Empty DataFrame
+    mock_download.return_value = pd.DataFrame()
 
-    # Execute function
-    add_daily()
+    rows = add_daily(store)
 
-    # Verify early exit
-    mock_get_tickers.assert_called_once()
-    mock_download.assert_called_once()
-    mock_bigquery_client.assert_not_called()
-    mock_ensure.assert_not_called()
-    mock_load.assert_not_called()
-    mock_merge.assert_not_called()
+    assert rows == 0
+    store.ensure_schema.assert_not_called()
+    store.upsert.assert_not_called()
 
 
 @patch("main.get_sp500_tickers")
 @patch("main.download_previous_day_data")
-@patch("google.cloud.bigquery.Client")
-@patch("main.ensure_dataset_and_table")
-@patch("main.load_to_temp_table")
-@patch("main.merge_into_main_table")
-def test_add_daily_error_handling(
-    mock_merge,
-    mock_load,
-    mock_ensure,
-    mock_bigquery_client,
-    mock_download,
-    mock_get_tickers,
-    sample_tickers,
-    sample_data,
-):
-    """
-    Test error handling during execution.
-    """
-    # Configure mocks
+def test_add_daily_error_handling(mock_download, mock_get_tickers, store, sample_tickers, sample_data):
+    """A storage failure propagates rather than being swallowed."""
     mock_get_tickers.return_value = sample_tickers
     mock_download.return_value = sample_data
-    mock_client = MagicMock()
-    mock_bigquery_client.return_value = mock_client
-    mock_load.side_effect = Exception("Failed to load data")
+    store.upsert.side_effect = Exception("Failed to load data")
 
-    # Verify exception is propagated
     with pytest.raises(Exception, match="Failed to load data"):
-        add_daily()
+        add_daily(store)
 
-    # Verify steps until error
-    mock_get_tickers.assert_called_once()
-    mock_download.assert_called_once()
-    mock_ensure.assert_called_once()
-    mock_load.assert_called_once()
-    mock_merge.assert_not_called()  # Should not be called after error
+    store.ensure_schema.assert_called_once()
+    store.upsert.assert_called_once()
