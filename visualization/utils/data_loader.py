@@ -1,10 +1,10 @@
 import numpy as np
 import pandas as pd
+import psycopg
 import streamlit as st
-from google.cloud import bigquery
 from fredapi import Fred
 
-from .config import fred_api_key
+from .config import HISTORY_START, MAIN_TABLE_NAME, dsn, fred_api_key
 
 
 @st.cache_data
@@ -12,37 +12,35 @@ def get_stock_tickers():
     return pd.read_csv("tickers.csv", header=None)[0].tolist()
 
 
-# def load_data() -> pd.DataFrame:
-#     df1 = pd.read_csv("../data/sp500_data.csv")
-#     df2 = pd.read_csv("../data/sp500_stock_index_data.csv")
-#     combined_df = pd.concat([df1, df2]).drop_duplicates(["Date", "Ticker"])
-
-#     return combined_df
-
-
 def load_data() -> pd.DataFrame:
     """
-    Load financial data from BigQuery.
+    Load financial data from the local Postgres.
 
     Returns:
         pd.DataFrame: Sorted financial data.
     """
-    client = bigquery.Client()
-
-    PROJECT_ID = "quant-dev-442615"
-    DATASET_ID = "financial_data"
-
     query = f"""
-    SELECT *
-    FROM `{PROJECT_ID}.{DATASET_ID}.sp500_data`
-    WHERE Date > '2020-01-01'
+    SELECT date AS "Date",
+           ticker AS "Ticker",
+           open AS "Open",
+           high AS "High",
+           low AS "Low",
+           close AS "Close",
+           volume AS "Volume"
+    FROM "{MAIN_TABLE_NAME}"
+    WHERE date > %s
+    ORDER BY date
     """
 
-    df = client.query(query).to_dataframe()
+    with psycopg.connect(dsn()) as conn:
+        with conn.cursor() as cur:
+            cur.execute(query, (HISTORY_START,))
+            columns = [desc.name for desc in cur.description]
+            df = pd.DataFrame(cur.fetchall(), columns=columns)
 
-    df = df.drop_duplicates(subset=["Date", "Ticker"])
-
-    return df.sort_values(by=["Date"])
+    # The primary key on (date, ticker) already rules out duplicates, but the
+    # rows migrated from BigQuery predate that constraint.
+    return df.drop_duplicates(subset=["Date", "Ticker"])
 
 
 @st.cache_data
