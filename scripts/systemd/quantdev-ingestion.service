@@ -1,0 +1,12 @@
+[Unit]
+Description=quant-dev daily S&P 500 ingestion
+Documentation=https://github.com/HadrienT/quant-dev
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/quant-dev
+ExecStart=/usr/bin/docker compose run --rm ingestion --mode daily
+# yfinance can be slow for the whole S&P 500; fail rather than hang forever.
+TimeoutStartSec=1800
