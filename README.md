@@ -5,7 +5,6 @@
 >
 > - **Data ingestion** → [`data-ingest`](https://github.com/HadrienT/data-ingest),
 >   which owns the pipelines and the Postgres they write to.
-> - **Cloud infrastructure** → [`cloud-infra`](https://github.com/HadrienT/cloud-infra) (private).
 > - **Pricing and modelling** → [`quant-modeling`](https://github.com/HadrienT/quant-modeling).
 >
 > What remains here is the Streamlit visualisation app, kept running locally
