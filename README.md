@@ -13,6 +13,8 @@
 A personal project exploring quantitative finance: portfolio construction and
 analysis over daily market data.
 
+**[How it works: interactive map](https://hadrient.github.io/atlas-pages/quant-dev/)**
+
 ## What is left here
 
 - **visualization** — a [Streamlit](https://streamlit.io/) app for portfolio
